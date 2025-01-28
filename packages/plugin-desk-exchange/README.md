@@ -4,17 +4,17 @@ This plugin enables interaction with the Hyperliquid DEX through Eliza, providin
 
 ## Features
 
-- 💱 Spot Trading
-    - Market orders (immediate execution)
-    - Limit orders (price-specific)
-    - Smart price validation to prevent mistakes
-- 📊 Price Checking
-    - Real-time price information
-    - 24h price change
-    - Volume statistics
-- 🔄 Order Management
-    - Cancel all open orders
-    - Clear feedback on execution
+-   💱 Spot Trading
+    -   Market orders (immediate execution)
+    -   Limit orders (price-specific)
+    -   Smart price validation to prevent mistakes
+-   📊 Price Checking
+    -   Real-time price information
+    -   24h price change
+    -   Volume statistics
+-   🔄 Order Management
+    -   Cancel all open orders
+    -   Clear feedback on execution
 
 ## Installation
 
@@ -83,28 +83,28 @@ Examples:
 
 The plugin includes smart price validation to prevent mistakes:
 
-- Market Orders: Validates price is within ±50% of market price
-- Limit Orders:
-    - Buy orders must be below market price
-    - Sell orders must be above market price
-    - Warns if price is very different from market (±80%)
+-   Market Orders: Validates price is within ±50% of market price
+-   Limit Orders:
+    -   Buy orders must be below market price
+    -   Sell orders must be above market price
+    -   Warns if price is very different from market (±80%)
 
 ## Error Handling
 
 The plugin provides clear error messages for common issues:
 
-- Invalid token symbols
-- Price validation failures
-- Network connection issues
-- Order execution failures
+-   Invalid token symbols
+-   Price validation failures
+-   Network connection issues
+-   Order execution failures
 
 ## Security Notes
 
-- Store your private key securely using environment variables
-- Test with small amounts first
-- Use testnet for initial testing
-- Monitor your orders regularly
-- Double-check prices before confirming trades
+-   Store your private key securely using environment variables
+-   Test with small amounts first
+-   Use testnet for initial testing
+-   Monitor your orders regularly
+-   Double-check prices before confirming trades
 
 ## License
 
