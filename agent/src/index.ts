@@ -85,6 +85,7 @@ import { confluxPlugin } from "@elizaos/plugin-conflux";
 import { createCosmosPlugin } from "@elizaos/plugin-cosmos";
 import { cronosZkEVMPlugin } from "@elizaos/plugin-cronoszkevm";
 import { deskExchangePlugin } from "@elizaos/plugin-desk-exchange";
+import { deskExchangePlugin } from "@elizaos/plugin-desk-exchange";
 import { evmPlugin } from "@elizaos/plugin-evm";
 import { edwinPlugin } from "@elizaos/plugin-edwin";
 import { flowPlugin } from "@elizaos/plugin-flow";
@@ -1301,7 +1302,9 @@ export async function createAgent(
             getSecret(character, "ARBITRAGE_BUNDLE_EXECUTOR_ADDRESS")
                 ? arbitragePlugin
                 : null,
-            getSecret(character, "DESK_EXCHANGE_PRIVATE_KEY") ||
+            getSecret(character, "DESK_EXCHANGE_PRIVATE_KEY")
+                ? deskExchangePlugin
+                : null,
             getSecret(character, "DESK_EXCHANGE_NETWORK")
                 ? deskExchangePlugin
                 : null,

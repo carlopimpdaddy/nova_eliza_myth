@@ -1,16 +1,20 @@
-# DESK Exchange Plugin for Eliza
+# Hyperliquid Plugin for Eliza
 
-This plugin enables interaction with the DESK Perpetual DEX through Eliza, providing perpetual futures trading capabilities. Visit [DESK Exchange](https://desk.exchange/) for more details.
+This plugin enables interaction with the Hyperliquid DEX through Eliza, providing spot trading capabilities.
+
 ## Features
-- 💱 Perpetual Trading
-  - Market orders (immediate execution)
-  - Limit orders (price-specific)
-- 🔄 Order Management
-  - Cancel all open orders
-- 🏦 Account summary
-  - View open orders
-  - View active positions
-  - View collateral balances
+
+-   💱 Spot Trading
+    -   Market orders (immediate execution)
+    -   Limit orders (price-specific)
+    -   Smart price validation to prevent mistakes
+-   📊 Price Checking
+    -   Real-time price information
+    -   24h price change
+    -   Volume statistics
+-   🔄 Order Management
+    -   Cancel all open orders
+    -   Clear feedback on execution
 
 ## Installation
 
@@ -18,7 +22,7 @@ Add the plugin to your Eliza configuration:
 
 ```json
 {
-    "plugins": ["@elizaos/plugin-desk-exchange"]
+    "plugins": ["@elizaos/plugin-hyperliquid"]
 }
 ```
 
@@ -27,30 +31,44 @@ Add the plugin to your Eliza configuration:
 Set the following environment variables:
 
 ```env
-DESK_EXCHANGE_PRIVATE_KEY=your_private_key  # Required for trading and cancelling orders
-DESK_EXCHANGE_NETWORK=                      # "mainnet" or "testnet
+HYPERLIQUID_PRIVATE_KEY=your_private_key  # Required for trading and cancelling orders
+HYPERLIQUID_TESTNET=true_or_false        # Optional, defaults to false
 ```
 
 ## Available Actions
 
-### 1. PERP_TRADE
+### 1. SPOT_TRADE
 
-Place perp market or limit orders.
+Place spot market or limit orders.
 
 Examples:
 
 ```
 # Market Orders
-"long 1 BTC"              -> Place buy order of 1 BTC at market price
-"sell 2 ETH"              -> Sells 2 ETH at market price
-"market buy 1 ETH"        -> Buys 1 ETH at market price
+"buy 1 PIP"              -> Buys 1 PIP at market price
+"sell 2 HYPE"            -> Sells 2 HYPE at market price
+"market buy 1 ETH"       -> Buys 1 ETH at market price
 
 # Limit Orders
-"buy 1 SOL at 20 USDC"   -> Places buy order for 1 SOL at 20 USDC
-"sell 0.5 BASE at 21 USDC" -> Places sell order for 0.5 BASE at 21 USDC
+"buy 1 PIP at 20 USDC"   -> Places buy order for 1 PIP at 20 USDC
+"sell 0.5 HYPE at 21 USDC" -> Places sell order for 0.5 HYPE at 21 USDC
 ```
 
-### 2. CANCEL_ORDERS
+### 2. PRICE_CHECK
+
+Get current price information for any token.
+
+Examples:
+
+```
+"What's the price of PIP?"
+"Check HYPE price"
+"Get ETH price"
+```
+
+Returns: Current price, 24h change, and volume.
+
+### 3. CANCEL_ORDERS
 
 Cancel all your open orders.
 
@@ -61,34 +79,32 @@ Examples:
 "Cancel my orders"
 ```
 
-### 3. GET_PERP_ACCOUNT_SUMMARY
+## Price Validation
 
-Display the summary of your current account with details on open orders, active position and collateral tokens.
+The plugin includes smart price validation to prevent mistakes:
 
-Examples:
+-   Market Orders: Validates price is within ±50% of market price
+-   Limit Orders:
+    -   Buy orders must be below market price
+    -   Sell orders must be above market price
+    -   Warns if price is very different from market (±80%)
 
-```
-"Check my account please"
+## Error Handling
 
-"Here is the summary of your account 0xxxxxxxx
-Your positions:
-- Long 1.0039 BTCUSD
-- Short 10.01 ETHUSD
-- Long 135808.80 SOLUSD
-Your orders:
-- Sell 0/0.0001 BTCUSD @200000.00
-Your collaterals:
-- 1382295.125325162 USDC
-- 2000000.00 CREDIT"
-```
+The plugin provides clear error messages for common issues:
+
+-   Invalid token symbols
+-   Price validation failures
+-   Network connection issues
+-   Order execution failures
 
 ## Security Notes
 
-- Store your private key securely using environment variables
-- Test with small amounts first
-- Use testnet for initial testing
-- Monitor your orders regularly
-- Double-check prices before confirming trades
+-   Store your private key securely using environment variables
+-   Test with small amounts first
+-   Use testnet for initial testing
+-   Monitor your orders regularly
+-   Double-check prices before confirming trades
 
 ## License
 
