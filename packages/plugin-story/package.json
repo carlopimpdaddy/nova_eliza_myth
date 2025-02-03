@@ -1,6 +1,6 @@
 {
     "name": "@elizaos/plugin-story",
-    "version": "0.25.6-alpha.1",
+    "version": "0.1.9",
     "type": "module",
     "main": "dist/index.js",
     "module": "dist/index.js",
@@ -39,8 +39,5 @@
     "devDependencies": {
         "@types/node": "^22.10.1",
         "@biomejs/biome": "1.5.3"
-    },
-    "publishConfig": {
-        "access": "public"
     }
 }
