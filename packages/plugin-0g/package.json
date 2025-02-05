@@ -1,6 +1,6 @@
 {
     "name": "@elizaos/plugin-0g",
-    "version": "0.25.6-alpha.1",
+    "version": "0.1.9",
     "type": "module",
     "main": "dist/index.js",
     "module": "dist/index.js",
@@ -36,8 +36,5 @@
         "lint:fix": "biome check --apply src/",
         "format": "biome format src/",
         "format:fix": "biome format --write src/"
-    },
-    "publishConfig": {
-        "access": "public"
     }
 }
