@@ -33,5 +33,8 @@ export default defineConfig({
         "stream",
         "node:*"
     ],
-    noExternal: []
+    noExternal: [],
+    esbuildOptions(options) {
+        options.conditions = ["import", "module"];
+    }
 });
