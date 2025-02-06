@@ -1,8 +1,8 @@
 # Use a specific Node.js version for better reproducibility
 FROM node:23.3.0-slim AS builder
 
-# Install pnpm globally and necessary build tools
-RUN npm install -g pnpm@9.4.0 && \
+# Install pnpm and tsup globally
+RUN npm install -g pnpm@9.4.0 tsup@8.0.1 && \
     apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y \
