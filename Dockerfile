@@ -2,10 +2,11 @@
 FROM node:23.3.0-slim AS builder
 
 # Install pnpm globally
-RUN npm install -g pnpm@9.4.0 && \
-    apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y \
+RUN npm install -g pnpm@9.4.0
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     git \
     python3 \
     python3-pip \
@@ -38,35 +39,34 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml ./
 COPY packages/*/package.json ./packages/
 
-# Install all dependencies including devDependencies
+# Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
 # Copy source code
 COPY . .
 
-# Build the project
+# Build
 RUN pnpm run build
 
-# Prune dev dependencies for production
+# Prune dev dependencies
 RUN pnpm prune --prod
 
-# Final runtime image
+# Final image
 FROM node:23.3.0-slim
 
-# Install runtime dependencies
-RUN npm install -g pnpm@9.4.0 && \
-    apt-get update && \
-    apt-get install -y \
+# Install runtime dependencies separately
+RUN npm install -g pnpm@9.4.0
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends \
     git \
     python3 \
-    ffmpeg && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    ffmpeg
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory
 WORKDIR /app
 
-# Copy built artifacts and production dependencies from the builder stage
+# Copy from builder
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/.npmrc ./
