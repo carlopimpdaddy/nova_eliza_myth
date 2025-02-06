@@ -9,16 +9,32 @@ export default defineConfig({
     platform: "node",
     target: "node18",
     bundle: true,
-    splitting: true, // Add this for better code splitting
+    splitting: false,
     dts: true, // Generate declaration files
     external: [
-        "dotenv", // Externalize dotenv to prevent bundling
-        "fs", // Externalize fs to use Node.js built-in module
-        "path", // Externalize other built-ins if necessary
-        "http",
-        "https",
-        // Add other modules you want to externalize
-        "onnxruntime-node",
-        "sharp",
+        "@huggingface/transformers",
+        "bignumber.js",
+        "dotenv",
+        "path",
+        "url",
+        "unique-names-generator",
+        "handlebars",
+        "@ai-sdk/*",
+        "langchain/*",
+        "ai",
+        "buffer",
+        "openai",
+        "js-tiktoken",
+        "together-ai",
+        "zod",
+        "@fal-ai/client",
+        "fs",
+        "fs/promises",
+        "uuid",
+        "glob",
+        "pino",
+        "pino-pretty",
+        "js-sha1",
+        "stream"
     ],
 });
