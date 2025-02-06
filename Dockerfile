@@ -44,11 +44,11 @@ RUN mkdir -p packages/plugin-bnb
 COPY packages/plugin-bnb/package.json packages/plugin-bnb/
 COPY packages/*/package.json ./packages/
 
-# Install dependencies
-RUN pnpm install --no-frozen-lockfile --ignore-scripts
-
 # Copy the rest of the application code
 COPY . .
+
+# Install dependencies
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
 # Build the project
 RUN pnpm run build && pnpm prune --prod
