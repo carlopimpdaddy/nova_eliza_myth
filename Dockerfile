@@ -1,8 +1,8 @@
 # Use a specific Node.js version for better reproducibility
 FROM node:23.3.0-slim AS builder
 
-# Install pnpm and tsup globally
-RUN npm install -g pnpm@9.4.0 tsup@8.0.1 && \
+# Install pnpm globally
+RUN npm install -g pnpm@9.4.0 && \
     apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y \
@@ -34,28 +34,21 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python
 # Set the working directory
 WORKDIR /app
 
-# Initialize pnpm store
-RUN pnpm store add
-
-# Copy package files first
+# Copy package files
 COPY package.json pnpm-workspace.yaml ./
-
-# Create package directories
-RUN mkdir -p packages/plugin-bnb packages/plugin-dkg
-
-# Copy package.json files
 COPY packages/*/package.json ./packages/
 
-# Install dependencies with clean cache
-RUN pnpm install --no-frozen-lockfile --ignore-scripts && \
-    pnpm store prune && \
-    pnpm store path
+# Install all dependencies including devDependencies
+RUN pnpm install --no-frozen-lockfile
 
-# Copy the rest of the application code
+# Copy source code
 COPY . .
 
 # Build the project
-RUN pnpm run build && pnpm prune --prod
+RUN pnpm run build
+
+# Prune dev dependencies for production
+RUN pnpm prune --prod
 
 # Final runtime image
 FROM node:23.3.0-slim
