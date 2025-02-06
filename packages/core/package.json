@@ -75,7 +75,7 @@
 		"@ai-sdk/mistral": "^1.0.0",
 		"@ai-sdk/openai": "^1.0.0",
 		"@ai-sdk/amazon-bedrock": "^1.0.0",
-		"@fal-ai/client": "^0.7.0",
+		"@fal-ai/client": "^1.2.3",
 		"@tavily/core": "^0.0.2",
 		"@types/uuid": "10.0.0",
 		"ai": "^2.0.0",
