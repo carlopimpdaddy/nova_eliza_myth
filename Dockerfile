@@ -37,12 +37,7 @@ WORKDIR /app
 # Copy application code
 COPY . .
 
-# Remove existing node_modules and lockfile
-RUN rm -rf node_modules
-RUN rm -rf packages/*/node_modules
-RUN rm pnpm-lock.yaml
-
-# Clean install
+# Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
 # Build the project
