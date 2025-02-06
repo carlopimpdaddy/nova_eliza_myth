@@ -19,7 +19,7 @@
         "dist"
     ],
     "dependencies": {
-        "@elizaos/core": "^0.1.0",
+        "@elizaos/core": "workspace:*",
         "dkg.js": "^8.0.4"
     },
     "scripts": {
