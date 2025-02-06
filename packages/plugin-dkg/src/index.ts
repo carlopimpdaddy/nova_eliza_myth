@@ -1,8 +1,8 @@
 import type { Plugin } from "@elizaos/core";
 
-import { dkgInsert } from "./actions/dkgInsert.js";
+import { dkgInsert } from "./actions/dkgInsert.ts";
 
-import { graphSearch } from "./providers/graphSearch.js";
+import { graphSearch } from "./providers/graphSearch.ts";
 
 export * as actions from "./actions";
 export * as providers from "./providers";

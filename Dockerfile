@@ -1,12 +1,11 @@
 # Use a specific Node.js version for better reproducibility
 FROM node:23.3.0-slim AS builder
 
-# Install pnpm globally
-RUN npm install -g pnpm@9.4.0
-
-# Install build dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+# Install pnpm globally and necessary build tools
+RUN npm install -g pnpm@9.15.4 && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y \
     git \
     python3 \
     python3-pip \
@@ -25,10 +24,9 @@ RUN apt-get update && \
     libpango1.0-dev \
     libgif-dev \
     openssl \
-    libssl-dev && \
+    libssl-dev libsecret-1-dev && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    npm install -g tsup@8.0.1 openapi-zod-client
+    rm -rf /var/lib/apt/lists/*
 
 # Set Python 3 as the default python
 RUN ln -sf /usr/bin/python3 /usr/bin/python
@@ -36,38 +34,32 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python
 # Set the working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-workspace.yaml ./
-COPY packages/*/package.json ./packages/
+# Copy application code
+COPY . .
 
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
-# Copy source code
-COPY . .
+# Build the project
+RUN pnpm run build && pnpm prune --prod
 
-# Build
-RUN cd packages/core && pnpm run build && cd ../.. && pnpm run build
-
-# Prune dev dependencies
-RUN pnpm prune --prod
-
-# Final image
+# Final runtime image
 FROM node:23.3.0-slim
 
-# Install runtime dependencies separately
-RUN npm install -g pnpm@9.4.0
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends \
+# Install runtime dependencies
+RUN npm install -g pnpm@9.15.4 && \
+    apt-get update && \
+    apt-get install -y \
     git \
     python3 \
-    ffmpeg
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+    ffmpeg && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set the working directory
 WORKDIR /app
 
-# Copy from builder
+# Copy built artifacts and production dependencies from the builder stage
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/.npmrc ./
@@ -84,4 +76,4 @@ COPY --from=builder /app/characters ./characters
 EXPOSE $PORT
 
 # Command to start the application
-CMD ["sh", "-c", "pnpm start & pnpm start:client"]
+CMD ["sh", "-c", "pnpm start --characters='characters/mythos/mythos.character.json' & pnpm start:client"] 
