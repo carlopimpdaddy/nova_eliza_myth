@@ -34,20 +34,22 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python
 # Set the working directory
 WORKDIR /app
 
+# Initialize pnpm store
+RUN pnpm store add
+
 # Copy package files first
 COPY package.json pnpm-workspace.yaml ./
 
-# Clear package cache and create package directories
-RUN pnpm store prune && \
-    mkdir -p packages/plugin-bnb && \
-    mkdir -p packages/plugin-dkg
+# Create package directories
+RUN mkdir -p packages/plugin-bnb packages/plugin-dkg
 
 # Copy package.json files
 COPY packages/*/package.json ./packages/
 
 # Install dependencies with clean cache
 RUN pnpm install --no-frozen-lockfile --ignore-scripts && \
-    pnpm store prune
+    pnpm store prune && \
+    pnpm store path
 
 # Copy the rest of the application code
 COPY . .
