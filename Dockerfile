@@ -37,18 +37,20 @@ WORKDIR /app
 # Copy package files first
 COPY package.json pnpm-workspace.yaml ./
 
-# Create directories for packages
-RUN mkdir -p packages/plugin-bnb
+# Clear package cache and create package directories
+RUN pnpm store prune && \
+    mkdir -p packages/plugin-bnb && \
+    mkdir -p packages/plugin-dkg
 
 # Copy package.json files
-COPY packages/plugin-bnb/package.json packages/plugin-bnb/
 COPY packages/*/package.json ./packages/
+
+# Install dependencies with clean cache
+RUN pnpm install --no-frozen-lockfile --ignore-scripts && \
+    pnpm store prune
 
 # Copy the rest of the application code
 COPY . .
-
-# Install dependencies
-RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
 # Build the project
 RUN pnpm run build && pnpm prune --prod
