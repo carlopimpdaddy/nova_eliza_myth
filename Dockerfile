@@ -47,7 +47,7 @@ RUN pnpm install --no-frozen-lockfile
 COPY . .
 
 # Build
-RUN pnpm run build
+RUN cd packages/core && pnpm run build && cd ../.. && pnpm run build
 
 # Prune dev dependencies
 RUN pnpm prune --prod
