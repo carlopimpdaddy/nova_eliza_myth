@@ -2,15 +2,10 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
     entry: ["src/index.ts"],
-    outDir: "dist",
+    format: ["esm"],
+    dts: true,
     sourcemap: true,
     clean: true,
-    format: ["esm"], // Ensure you're targeting CommonJS
-    platform: "node",
-    target: "node18",
-    bundle: true,
-    splitting: false,
-    dts: true, // Generate declaration files
     external: [
         "@huggingface/transformers",
         "bignumber.js",
@@ -35,6 +30,8 @@ export default defineConfig({
         "pino",
         "pino-pretty",
         "js-sha1",
-        "stream"
+        "stream",
+        "node:*"
     ],
+    noExternal: []
 });
