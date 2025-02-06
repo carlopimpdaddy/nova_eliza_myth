@@ -27,7 +27,8 @@ RUN apt-get update && \
     openssl \
     libssl-dev && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g tsup@8.0.1 openapi-zod-client
 
 # Set Python 3 as the default python
 RUN ln -sf /usr/bin/python3 /usr/bin/python
