@@ -34,11 +34,21 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python
 # Set the working directory
 WORKDIR /app
 
-# Copy application code
-COPY . .
+# Copy package files first
+COPY package.json pnpm-workspace.yaml ./
+
+# Create directories for packages
+RUN mkdir -p packages/plugin-bnb
+
+# Copy package.json files
+COPY packages/plugin-bnb/package.json packages/plugin-bnb/
+COPY packages/*/package.json ./packages/
 
 # Install dependencies
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
+
+# Copy the rest of the application code
+COPY . .
 
 # Build the project
 RUN pnpm run build && pnpm prune --prod
@@ -73,7 +83,7 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
 # Expose necessary ports
-EXPOSE 3000 5173
+EXPOSE $PORT
 
 # Command to start the application
 CMD ["sh", "-c", "pnpm start & pnpm start:client"]
