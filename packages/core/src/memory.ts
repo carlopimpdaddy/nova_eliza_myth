@@ -199,6 +199,9 @@ export class MemoryManager implements IMemoryManager {
     }
 
     async getMemoryById(id: UUID): Promise<Memory | null> {
+        if (!id) {
+            return null;
+        }
         const result = await this.runtime.databaseAdapter.getMemoryById(id);
         if (result && result.agentId !== this.runtime.agentId) return null;
         return result;
