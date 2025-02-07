@@ -21,7 +21,7 @@ export abstract class DatabaseAdapter<DB = any> implements IDatabaseAdapter {
     /**
      * The database instance.
      */
-    private db!: DB;
+    protected db!: DB;
 
     /**
      * Circuit breaker instance used to handle fault tolerance and prevent cascading failures.
