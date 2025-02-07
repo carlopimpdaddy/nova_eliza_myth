@@ -203,7 +203,9 @@ export class MemoryManager implements IMemoryManager {
             return null;
         }
         const result = await this.runtime.databaseAdapter.getMemoryById(id);
-        if (result && result.agentId !== this.runtime.agentId) return null;
+        if (result && result.agentId !== this.runtime.agentId) {
+            return null;
+        }
         return result;
     }
 
@@ -213,6 +215,9 @@ export class MemoryManager implements IMemoryManager {
      * @returns A Promise that resolves when the operation completes.
      */
     async removeMemory(memoryId: UUID): Promise<void> {
+        if (!memoryId) {
+            return;
+        }
         await this.runtime.databaseAdapter.removeMemory(
             memoryId,
             this.tableName
