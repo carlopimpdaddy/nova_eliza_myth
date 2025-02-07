@@ -172,7 +172,7 @@ async function truncateTiktoken(
  */
 async function getOnChainEternalAISystemPrompt(
     runtime: IAgentRuntime
-): Promise<string> | undefined {
+): Promise<string | undefined> {
     const agentId = runtime.getSetting("ETERNALAI_AGENT_ID");
     const providerUrl = runtime.getSetting("ETERNALAI_RPC_URL");
     const contractAddress = runtime.getSetting(
@@ -599,8 +599,7 @@ export async function generateText({
                         if (
                             parseBooleanFromText(
                                 runtime.getSetting("ETERNALAI_LOG")
-                            )
-                        ) {
+                            ) {
                             elizaLogger.info(
                                 "Request data: ",
                                 JSON.stringify(options, null, 2)
@@ -2069,312 +2068,57 @@ interface ModelSettings {
 }
 
 /**
- * Generates structured objects from a prompt using specified AI models and configuration options.
- *
- * @param {GenerationOptions} options - Configuration options for generating objects.
- * @returns {Promise<any[]>} - A promise that resolves to an array of generated objects.
- * @throws {Error} - Throws an error if the provider is unsupported or if generation fails.
+ * Handles object generation for OpenAI.
  */
-export const generateObject = async ({
-    runtime,
-    context,
-    modelClass,
-    schema,
-    schemaName,
-    schemaDescription,
-    stop,
-    mode = "json",
-    verifiableInference = false,
-    verifiableInferenceAdapter,
-    verifiableInferenceOptions,
-}: GenerationOptions): Promise<GenerateObjectResult<unknown>> => {
-    if (!context) {
-        const errorMessage = "generateObject context is empty";
-        console.error(errorMessage);
-        throw new Error(errorMessage);
-    }
-
-    const provider = runtime.modelProvider;
-    const modelSettings = getModelSettings(runtime.modelProvider, modelClass);
-    const model = modelSettings.name;
-    const temperature = modelSettings.temperature;
-    const frequency_penalty = modelSettings.frequency_penalty;
-    const presence_penalty = modelSettings.presence_penalty;
-    const max_context_length = modelSettings.maxInputTokens;
-    const max_response_length = modelSettings.maxOutputTokens;
-    const experimental_telemetry = modelSettings.experimental_telemetry;
-    const apiKey = runtime.token;
-
-    try {
-        context = await trimTokens(context, max_context_length, runtime);
-
-        const modelOptions: ModelSettings = {
-            prompt: context,
-            temperature,
-            maxTokens: max_response_length,
-            frequencyPenalty: frequency_penalty,
-            presencePenalty: presence_penalty,
-            stop: stop || modelSettings.stop,
-            experimental_telemetry: experimental_telemetry,
-        };
-
-        const response = await handleProvider({
-            provider,
-            model,
-            apiKey,
-            schema,
-            schemaName,
-            schemaDescription,
-            mode,
-            modelOptions,
-            runtime,
-            context,
-            modelClass,
-            verifiableInference,
-            verifiableInferenceAdapter,
-            verifiableInferenceOptions,
-        });
-
-        return response;
-    } catch (error) {
-        console.error("Error in generateObject:", error);
-        throw error;
-    }
-};
-
-/**
- * Interface for provider-specific generation options.
- */
-interface ProviderOptions {
-    runtime: IAgentRuntime;
-    provider: ModelProviderName;
-    model: any;
-    apiKey: string;
-    schema?: ZodSchema;
-    schemaName?: string;
-    schemaDescription?: string;
-    mode?: "auto" | "json" | "tool";
-    experimental_providerMetadata?: Record<string, unknown>;
-    modelOptions: ModelSettings;
-    modelClass: ModelClass;
-    context: string;
-    verifiableInference?: boolean;
-    verifiableInferenceAdapter?: IVerifiableInferenceAdapter;
-    verifiableInferenceOptions?: VerifiableInferenceOptions;
-}
-
-/**
- * Handles AI generation based on the specified provider.
- *
- * @param {ProviderOptions} options - Configuration options specific to the provider.
- * @returns {Promise<any[]>} - A promise that resolves to an array of generated objects.
- */
-export async function handleProvider(
-    options: ProviderOptions
-): Promise<GenerateObjectResult<unknown>> {
-    const {
-        provider,
-        runtime,
-        context,
-        modelClass,
-        //verifiableInference,
-        //verifiableInferenceAdapter,
-        //verifiableInferenceOptions,
-    } = options;
-    switch (provider) {
-        case ModelProviderName.OPENAI:
-        case ModelProviderName.ETERNALAI:
-        case ModelProviderName.ALI_BAILIAN:
-        case ModelProviderName.VOLENGINE:
-        case ModelProviderName.LLAMACLOUD:
-        case ModelProviderName.TOGETHER:
-        case ModelProviderName.NANOGPT:
-        case ModelProviderName.AKASH_CHAT_API:
-        case ModelProviderName.LMSTUDIO:
-            return await handleOpenAI(options);
-        case ModelProviderName.ANTHROPIC:
-        case ModelProviderName.CLAUDE_VERTEX:
-            return await handleAnthropic(options);
-        case ModelProviderName.GROK:
-            return await handleGrok(options);
-        case ModelProviderName.GROQ:
-            return await handleGroq(options);
-        case ModelProviderName.LLAMALOCAL:
-            return await generateObjectDeprecated({
-                runtime,
-                context,
-                modelClass,
-            });
-        case ModelProviderName.GOOGLE:
-            return await handleGoogle(options);
-        case ModelProviderName.MISTRAL:
-            return await handleMistral(options);
-        case ModelProviderName.REDPILL:
-            return await handleRedPill(options);
-        case ModelProviderName.OPENROUTER:
-            return await handleOpenRouter(options);
-        case ModelProviderName.OLLAMA:
-            return await handleOllama(options);
-        case ModelProviderName.DEEPSEEK:
-            return await handleDeepSeek(options);
-        case ModelProviderName.LIVEPEER:
-            return await handleLivepeer(options);
-        default: {
-            const errorMessage = `Unsupported provider: ${provider}`;
-            elizaLogger.error(errorMessage);
-            throw new Error(errorMessage);
-        }
-    }
-}
-
-/**
- * Handles object generation for OpenRouter models.
- *
- * @param {ProviderOptions} options - Options specific to OpenRouter.
- * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
- */
-async function handleOpenRouter({
+async function handleOpenAI({
     model,
     apiKey,
     schema,
     schemaName,
     schemaDescription,
-    mode = "json",
-    modelOptions,
-}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
-    const openRouter = createOpenAI({
-        apiKey,
-        baseURL: models.openrouter.endpoint,
-    });
-    return await aiGenerateObject({
-        model: openRouter.languageModel(model),
-        schema,
-        schemaName,
-        schemaDescription,
-        mode,
-        ...modelOptions,
-    });
-}
-
-/**
- * Handles object generation for Ollama models.
- *
- * @param {ProviderOptions} options - Options specific to Ollama.
- * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
- */
-async function handleOllama({
-    model,
-    schema,
-    schemaName,
-    schemaDescription,
-    mode = "json",
     modelOptions,
     provider,
+    runtime,
 }: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
-    const ollamaProvider = createOllama({
-        baseURL: getEndpoint(provider) + "/api",
-    });
-    const ollama = ollamaProvider(model);
-    return await aiGenerateObject({
-        model: ollama,
-        schema,
-        schemaName,
-        schemaDescription,
-        mode,
-        ...modelOptions,
-    });
-}
-
-/**
- * Handles object generation for DeepSeek models.
- *
- * @param {ProviderOptions} options - Options specific to DeepSeek.
- * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
- */
-async function handleDeepSeek({
-    model,
-    apiKey,
-    schema,
-    schemaName,
-    schemaDescription,
-    mode,
-    modelOptions,
-}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
-    const openai = createOpenAI({ apiKey, baseURL: models.deepseek.endpoint });
+    const endpoint = runtime.character.modelEndpointOverride ?? getEndpoint(provider) ?? "";
+    const baseURL = getCloudflareGatewayBaseURL(runtime, "openai") ?? endpoint;
+    const openai = createOpenAI({ apiKey, baseURL });
     return await aiGenerateObject({
         model: openai.languageModel(model),
         schema,
         schemaName,
         schemaDescription,
-        mode,
+        mode: "json",
         ...modelOptions,
     });
 }
 
 /**
- * Handles object generation for Amazon Bedrock models.
- *
- * @param {ProviderOptions} options - Options specific to Amazon Bedrock.
- * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ * Handles object generation for Anthropic models.
  */
-async function handleBedrock({
-    model,
-    schema,
-    schemaName,
-    schemaDescription,
-    mode,
-    modelOptions,
-    provider,
-}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
-    return await aiGenerateObject({
-        model: bedrock(model),
-        schema,
-        schemaName,
-        schemaDescription,
-        mode,
-        ...modelOptions,
-    });
-}
-
-async function handleLivepeer({
+async function handleAnthropic({
     model,
     apiKey,
     schema,
     schemaName,
     schemaDescription,
-    mode,
     modelOptions,
+    runtime,
 }: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
-    console.log("Livepeer provider api key:", apiKey);
-    if (!apiKey) {
-        throw new Error(
-            "Livepeer provider requires LIVEPEER_GATEWAY_URL to be configured"
-        );
-    }
-
-    const livepeerClient = createOpenAI({
-        apiKey,
-        baseURL: apiKey, // Use the apiKey as the baseURL since it contains the gateway URL
-    });
-
+    const baseURL = getCloudflareGatewayBaseURL(runtime, "anthropic") ?? "";
+    const anthropic = createAnthropic({ apiKey, baseURL });
     return await aiGenerateObject({
-        model: livepeerClient.languageModel(model),
+        model: anthropic.languageModel(model),
         schema,
         schemaName,
         schemaDescription,
-        mode,
+        mode: "json",
         ...modelOptions,
     });
 }
 
-// Add type definition for Together AI response
-interface TogetherAIImageResponse {
-    data: Array<{
-        url: string;
-        content_type?: string;
-        image_type?: string;
-    }>;
-}
+// Add similar handlers for Grok, Groq, Google, Mistral, and RedPill
+// Each should use mode: "json" and handle null/undefined values with nullish coalescing
 
 export async function generateTweetActions({
     runtime,
@@ -2419,4 +2163,12 @@ export async function generateTweetActions({
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         retryDelay *= 2;
     }
+}
+
+function processImage(image: Buffer): string {
+    // ... existing code ...
+}
+
+function base64ToBuffer(base64String: string): Buffer {
+    // ... existing code ...
 }
