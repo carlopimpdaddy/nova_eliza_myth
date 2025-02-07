@@ -341,13 +341,6 @@ export abstract class DatabaseAdapter<DB = any> implements IDatabaseAdapter {
     abstract getParticipantsForAccount(userId: UUID): Promise<Participant[]>;
 
     /**
-     * Retrieves participants associated with a specific account.
-     * @param userId The UUID of the account.
-     * @returns A Promise that resolves to an array of Participant objects.
-     */
-    abstract getParticipantsForAccount(userId: UUID): Promise<Participant[]>;
-
-    /**
      * Retrieves participants for a specific room.
      * @param roomId The UUID of the room for which to retrieve participants.
      * @returns A Promise that resolves to an array of UUIDs representing the participants.
