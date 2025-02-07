@@ -151,24 +151,20 @@ export function getEmbeddingType(runtime: IAgentRuntime): "local" | "remote" {
 }
 
 export function getEmbeddingZeroVector(): number[] {
+    const getModelDimensions = (provider: ModelProviderName): number => {
+        return getEmbeddingModelSettings(provider)?.dimensions ?? 384;
+    };
+
     let embeddingDimension = 384; // Default BGE dimension
 
     if (settings.USE_OPENAI_EMBEDDING === "true") {
-        embeddingDimension = getEmbeddingModelSettings(
-            ModelProviderName.OPENAI
-        ).dimensions; // OpenAI dimension
+        embeddingDimension = getModelDimensions(ModelProviderName.OPENAI);
     } else if (settings.USE_OLLAMA_EMBEDDING === "true") {
-        embeddingDimension = getEmbeddingModelSettings(
-            ModelProviderName.OLLAMA
-        ).dimensions; // Ollama mxbai-embed-large dimension
+        embeddingDimension = getModelDimensions(ModelProviderName.OLLAMA);
     } else if (settings.USE_GAIANET_EMBEDDING === "true") {
-        embeddingDimension = getEmbeddingModelSettings(
-            ModelProviderName.GAIANET
-        ).dimensions; // GaiaNet dimension
+        embeddingDimension = getModelDimensions(ModelProviderName.GAIANET);
     } else if (settings.USE_HEURIST_EMBEDDING === "true") {
-        embeddingDimension = getEmbeddingModelSettings(
-            ModelProviderName.HEURIST
-        ).dimensions; // Heurist dimension
+        embeddingDimension = getModelDimensions(ModelProviderName.HEURIST);
     }
 
     return Array(embeddingDimension).fill(0);
@@ -255,10 +251,11 @@ export async function embed(runtime: IAgentRuntime, input: string) {
     }
 
     if (config.provider === EmbeddingProvider.Heurist) {
+        const endpoint = getEndpoint(ModelProviderName.HEURIST) ?? "";
         return await getRemoteEmbedding(input, {
             model: config.model,
-            endpoint: getEndpoint(ModelProviderName.HEURIST),
-            apiKey: runtime.token,
+            endpoint,
+            apiKey: runtime.token ?? "",
             dimensions: config.dimensions,
         });
     }
@@ -278,10 +275,9 @@ export async function embed(runtime: IAgentRuntime, input: string) {
     // Fallback to remote override
     return await getRemoteEmbedding(input, {
         model: config.model,
-        endpoint:
-            runtime.character.modelEndpointOverride ||
-            getEndpoint(runtime.character.modelProvider),
-        apiKey: runtime.token,
+        endpoint: runtime.character.modelEndpointOverride ??
+            getEndpoint(runtime.character.modelProvider) ?? "",
+        apiKey: runtime.token ?? "",
         dimensions: config.dimensions,
     });
 
