@@ -1,15 +1,28 @@
 {
     "name": "@elizaos/plugin-bnb",
-    "version": "0.1.9",
-    "type": "module",
+    "version": "0.25.6-alpha.1",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "dependencies": {
         "@elizaos/core": "workspace:*"
     },
     "devDependencies": {
-        "@types/node": "^16.0.0",
-        "tsup": "^7.2.0",
-        "typescript": "^5.0.0"
+        "@biomejs/biome": "1.9.4"
+    },
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "test": "vitest run",
+        "clean": "rm -rf dist",
+        "lint": "biome lint .",
+        "lint:fix": "biome check --apply .",
+        "format": "biome format .",
+        "format:fix": "biome format --write ."
+    },
+    "peerDependencies": {
+        "whatwg-url": "7.1.0"
+    },
+    "publishConfig": {
+        "access": "public"
     }
 }
