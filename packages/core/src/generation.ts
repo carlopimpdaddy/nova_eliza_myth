@@ -594,6 +594,9 @@ export async function generateText({
                             options.body = JSON.stringify(body);
                         }
 
+                        if (!runtime.fetch) {
+                            throw new Error("Runtime fetch is not available");
+                        }
                         const fetching = await runtime.fetch(url, options);
 
                         if (
@@ -2068,8 +2071,39 @@ interface ModelSettings {
 }
 
 /**
- * Handles object generation for OpenAI.
+ * Interface for provider-specific generation options.
  */
+interface ProviderOptions {
+    runtime: IAgentRuntime;
+    provider: ModelProviderName;
+    model: string;
+    apiKey: string;
+    schema?: ZodSchema;
+    schemaName?: string;
+    schemaDescription?: string;
+    modelOptions: ModelSettings;
+}
+
+// Add TogetherAI response type
+interface TogetherAIImageResponse {
+    data: Array<{
+        url: string;
+        content_type?: string;
+        image_type?: string;
+    }>;
+}
+
+// Fix processImage and base64ToBuffer function signatures
+function processImage(image: Buffer): string {
+    // Implementation
+    return image.toString('base64');
+}
+
+function base64ToBuffer(base64String: string): Buffer {
+    return Buffer.from(base64String, 'base64');
+}
+
+// Fix handleOpenAI function
 async function handleOpenAI({
     model,
     apiKey,
@@ -2093,9 +2127,7 @@ async function handleOpenAI({
     });
 }
 
-/**
- * Handles object generation for Anthropic models.
- */
+// Fix handleAnthropic function
 async function handleAnthropic({
     model,
     apiKey,
@@ -2116,9 +2148,6 @@ async function handleAnthropic({
         ...modelOptions,
     });
 }
-
-// Add similar handlers for Grok, Groq, Google, Mistral, and RedPill
-// Each should use mode: "json" and handle null/undefined values with nullish coalescing
 
 export async function generateTweetActions({
     runtime,
@@ -2163,12 +2192,4 @@ export async function generateTweetActions({
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         retryDelay *= 2;
     }
-}
-
-function processImage(image: Buffer): string {
-    // ... existing code ...
-}
-
-function base64ToBuffer(base64String: string): Buffer {
-    // ... existing code ...
 }
