@@ -599,10 +599,7 @@ export async function generateText({
                         }
                         const fetching = await runtime.fetch(url, options);
 
-                        if (
-                            parseBooleanFromText(
-                                runtime.getSetting("ETERNALAI_LOG")
-                            ) {
+                        if (parseBooleanFromText(runtime.getSetting("ETERNALAI_LOG"))) {
                             elizaLogger.info(
                                 "Request data: ",
                                 JSON.stringify(options, null, 2)
