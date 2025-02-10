@@ -37,9 +37,6 @@ WORKDIR /app
 # Copy application code
 COPY . .
 
-# Install dependencies
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-
 # Create custom .npmrc and install dependencies
 RUN rm -f .npmrc pnpm-lock.yaml && \
     echo "shamefully-hoist=true" > .npmrc && \
@@ -51,12 +48,12 @@ RUN rm -f .npmrc pnpm-lock.yaml && \
 COPY patches /app/patches
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV PNPM_PATCH_MODE=true
+ENV PNPM_PATCHED_DEPENDENCIES=true
 
 # Install global dependencies using npm instead of pnpm
-RUN npm install -g pnpm@9.4.0 turbo @pnpm/turborepo && \
-    ENV NODE_OPTIONS="--max-old-space-size=4096" \
-    ENV PNPM_PATCH_MODE=true \
-    ENV PNPM_PATCHED_DEPENDENCIES=true \
+RUN npm install -g pnpm@9.4.0 turbo && \
     pnpm add -w @solana-developers/helpers@latest && \
     pnpm install --no-frozen-lockfile --force --config.strict-peer-dependencies=false
 
