@@ -38,7 +38,9 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile --ignore-scripts && \
+    pnpm update @sei-js/core@latest && \
+    pnpm remove @solana-developers/helpers || true
 
 # Build the project
 RUN pnpm run build && pnpm prune --prod
