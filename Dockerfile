@@ -42,12 +42,12 @@ RUN pnpm install -g turbo && \
     pnpm install --no-frozen-lockfile --ignore-scripts && \
     pnpm update --recursive && \
     pnpm update @sei-js/core@latest && \
-    pnpm remove @solana-developers/helpers || true
+    (pnpm remove @solana-developers/helpers || true) && \
+    rm -f pnpm-lock.yaml && \
+    pnpm install --no-frozen-lockfile
 
 # Build the project
-RUN pnpm install --no-frozen-lockfile && \
-    pnpm update --recursive && \
-    pnpm exec turbo run build --filter=!eliza-docs && \
+RUN pnpm exec turbo run build --filter=!eliza-docs && \
     pnpm prune --prod
 
 # Final runtime image
