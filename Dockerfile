@@ -48,16 +48,17 @@ RUN rm -f .npmrc pnpm-lock.yaml && \
     echo "auto-install-peers=true" >> .npmrc && \
     echo "enable-pre-post-scripts=true" >> .npmrc
 
-
 COPY patches /app/patches
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-RUN pnpm install -g @pnpm/turborepo
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-ENV PNPM_PATCH_MODE=true
-ENV PNPM_PATCHED_DEPENDENCIES=true
-RUN pnpm install --no-frozen-lockfile --force --config.strict-peer-dependencies=false
+
+# Install global dependencies using npm instead of pnpm
+RUN npm install -g pnpm@9.4.0 turbo @pnpm/turborepo && \
+    ENV NODE_OPTIONS="--max-old-space-size=4096" \
+    ENV PNPM_PATCH_MODE=true \
+    ENV PNPM_PATCHED_DEPENDENCIES=true \
+    pnpm add -w @solana-developers/helpers@latest && \
+    pnpm install --no-frozen-lockfile --force --config.strict-peer-dependencies=false
 
 # Build the project
 RUN pnpm exec turbo run build --filter=!eliza-docs && \
