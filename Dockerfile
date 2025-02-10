@@ -43,7 +43,8 @@ RUN rm -f .npmrc pnpm-lock.yaml && \
     echo "node-linker=hoisted" >> .npmrc && \
     echo "strict-peer-dependencies=false" >> .npmrc && \
     echo "auto-install-peers=true" >> .npmrc && \
-    echo "enable-pre-post-scripts=true" >> .npmrc
+    echo "enable-pre-post-scripts=true" >> .npmrc && \
+    echo "patches-dir=./patches" >> .npmrc
 
 COPY patches /app/patches
 ENV PNPM_HOME="/pnpm"
@@ -52,9 +53,9 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV PNPM_PATCH_MODE=true
 ENV PNPM_PATCHED_DEPENDENCIES=true
 
-# Install global dependencies using npm instead of pnpm
+# Install global dependencies and project dependencies
 RUN npm install -g pnpm@9.4.0 turbo && \
-    pnpm add -w @solana-developers/helpers@latest && \
+    pnpm add -w @solana-developers/helpers@1.2.1 && \
     pnpm install --no-frozen-lockfile --force --config.strict-peer-dependencies=false
 
 # Build the project
