@@ -38,12 +38,12 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV PNPM_PATCHED_DEPENDENCIES=false
+
 RUN rm -f .npmrc pnpm-lock.yaml && \
     npm install -g pnpm@9.4.0 turbo && \
-    pnpm install --no-frozen-lockfile --ignore-scripts --config.patchedDependencies="{}" && \
-    pnpm update --recursive && \
-    pnpm update @sei-js/core@latest && \
-    pnpm install --no-frozen-lockfile
+    pnpm install --no-frozen-lockfile --ignore-scripts --shamefully-hoist --no-optional
 
 # Build the project
 RUN pnpm exec turbo run build --filter=!eliza-docs && \
