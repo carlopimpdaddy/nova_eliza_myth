@@ -46,8 +46,6 @@ RUN rm -f .npmrc pnpm-lock.yaml && \
     echo "node-linker=hoisted" >> .npmrc && \
     echo "strict-peer-dependencies=false" >> .npmrc && \
     echo "auto-install-peers=true" >> .npmrc && \
-    mkdir -p patches && \
-    cp patches/@solana-developers__helpers.patch patches/ && \
     npm install -g pnpm@9.4.0 turbo && \
     PNPM_PATCH_MODE=true pnpm install --no-frozen-lockfile --no-optional --force --no-verify-store-integrity --shamefully-hoist
 
