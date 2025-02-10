@@ -38,14 +38,11 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN sed -i '/patch-commit/d' .npmrc && \
-    sed -i '/patchedDependencies/d' .npmrc && \
+RUN rm -f .npmrc pnpm-lock.yaml && \
     npm install -g pnpm@9.4.0 turbo && \
-    pnpm install --no-frozen-lockfile --ignore-scripts && \
+    pnpm install --no-frozen-lockfile --ignore-scripts --config.patchedDependencies="{}" && \
     pnpm update --recursive && \
     pnpm update @sei-js/core@latest && \
-    (pnpm remove @solana-developers/helpers || true) && \
-    rm -f pnpm-lock.yaml && \
     pnpm install --no-frozen-lockfile
 
 # Build the project
