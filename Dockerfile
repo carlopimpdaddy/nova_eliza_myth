@@ -47,8 +47,9 @@ RUN rm -f .npmrc pnpm-lock.yaml && \
     echo "strict-peer-dependencies=false" >> .npmrc && \
     echo "auto-install-peers=true" >> .npmrc && \
     echo "enable-pre-post-scripts=true" >> .npmrc && \
+    echo "legacy-peer-deps=true" >> .npmrc && \
     npm install -g pnpm@9.4.0 turbo && \
-    PNPM_PATCH_MODE=true PNPM_PATCHED_DEPENDENCIES=true pnpm install --no-frozen-lockfile --force
+    PNPM_PATCH_MODE=true PNPM_PATCHED_DEPENDENCIES=true pnpm install --no-frozen-lockfile --force --legacy-peer-deps
 
 # Build the project
 RUN pnpm exec turbo run build --filter=!eliza-docs && \
