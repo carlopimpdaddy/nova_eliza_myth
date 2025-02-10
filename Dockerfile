@@ -46,11 +46,18 @@ RUN rm -f .npmrc pnpm-lock.yaml && \
     echo "node-linker=hoisted" >> .npmrc && \
     echo "strict-peer-dependencies=false" >> .npmrc && \
     echo "auto-install-peers=true" >> .npmrc && \
-    echo "enable-pre-post-scripts=true" >> .npmrc && \
-    echo "patches-dir=./patches" >> .npmrc && \
-    echo "patchedDependencies={\"@solana-developers/helpers\":\"patches/@solana-developers__helpers.patch\"}" >> .npmrc && \
-    npm install -g pnpm@9.4.0 turbo && \
-    PNPM_PATCH_MODE=true PNPM_PATCHED_DEPENDENCIES=true NODE_OPTIONS="--max-old-space-size=4096" pnpm install --no-frozen-lockfile --force --config.strict-peer-dependencies=false
+    echo "enable-pre-post-scripts=true" >> .npmrc
+
+
+COPY patches /app/patches
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+RUN pnpm install -g @pnpm/turborepo
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV PNPM_PATCH_MODE=true
+ENV PNPM_PATCHED_DEPENDENCIES=true
+RUN pnpm install --no-frozen-lockfile --force --config.strict-peer-dependencies=false
 
 # Build the project
 RUN pnpm exec turbo run build --filter=!eliza-docs && \
