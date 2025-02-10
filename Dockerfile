@@ -1,4 +1,3 @@
-# Use a specific Node.js version for better reproducibility
 FROM node:23.3.0-slim AS builder
 
 # Install pnpm globally and necessary build tools
@@ -24,7 +23,8 @@ RUN npm install -g pnpm@9.4.0 && \
     libpango1.0-dev \
     libgif-dev \
     openssl \
-    libssl-dev && \
+    libssl-dev \
+    gnupg && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -48,13 +48,15 @@ RUN rm -f .npmrc pnpm-lock.yaml && \
     echo "auto-install-peers=true" >> .npmrc && \
     echo "enable-pre-post-scripts=true" >> .npmrc
 
+# Configure corepack and install turborepo
+RUN corepack enable && \
+    export GNUPGHOME="$(mktemp -d)" && \
+    gpg --batch --keyserver keyserver.ubuntu.com --recv-keys 6A5594B8 && \
+    pnpm install -g @pnpm/turborepo
 
-COPY patches /app/patches
+# Install project dependencies
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-RUN pnpm install -g @pnpm/turborepo
-ENV NODE_OPTIONS="--max-old-space-size=4096"
 ENV PNPM_PATCH_MODE=true
 ENV PNPM_PATCHED_DEPENDENCIES=true
 RUN pnpm install --no-frozen-lockfile --force --config.strict-peer-dependencies=false
@@ -96,4 +98,4 @@ COPY --from=builder /app/characters ./characters
 EXPOSE $PORT
 
 # Command to start the application
-CMD ["sh", "-c", "pnpm start --characters='characters/mythos/mythos.character.json' & pnpm start:client"] 
+CMD ["sh", "-c", "pnpm start --characters='characters/mythos/mythos.character.json' & pnpm start:client"]
