@@ -39,11 +39,16 @@ COPY . .
 
 # Install dependencies
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-ENV PNPM_PATCHED_DEPENDENCIES=false
 
+# Create custom .npmrc and install dependencies
 RUN rm -f .npmrc pnpm-lock.yaml && \
+    echo "shamefully-hoist=true" > .npmrc && \
+    echo "node-linker=hoisted" >> .npmrc && \
+    echo "strict-peer-dependencies=false" >> .npmrc && \
+    echo "auto-install-peers=true" >> .npmrc && \
+    echo "patchedDependencies={}" >> .npmrc && \
     npm install -g pnpm@9.4.0 turbo && \
-    pnpm install --no-frozen-lockfile --ignore-scripts --shamefully-hoist --no-optional
+    PNPM_PATCHED_DEPENDENCIES=false pnpm install --no-frozen-lockfile --ignore-scripts --no-optional --force
 
 # Build the project
 RUN pnpm exec turbo run build --filter=!eliza-docs && \
