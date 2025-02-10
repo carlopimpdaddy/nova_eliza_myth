@@ -48,10 +48,17 @@ RUN rm -f .npmrc pnpm-lock.yaml && \
     echo "auto-install-peers=true" >> .npmrc && \
     echo "enable-pre-post-scripts=true" >> .npmrc
 
-# Configure corepack and install turborepo
+# Configure corepack and install turborepo with retry logic
 RUN corepack enable && \
     export GNUPGHOME="$(mktemp -d)" && \
-    gpg --batch --keyserver keyserver.ubuntu.com --recv-keys 6A5594B8 && \
+    for server in \
+    hkp://keyserver.ubuntu.com:80 \
+    hkp://pgp.mit.edu \
+    hkp://pool.sks-keyservers.net:80; \
+    do \
+    echo "Trying keyserver: $server"; \
+    gpg --batch --keyserver "$server" --recv-keys 6A5594B8 && break; \
+    done && \
     pnpm install -g @pnpm/turborepo
 
 # Install project dependencies
@@ -70,32 +77,4 @@ FROM node:23.3.0-slim
 
 # Install runtime dependencies
 RUN npm install -g pnpm@9.4.0 && \
-    apt-get update && \
-    apt-get install -y \
-    git \
-    python3 \
-    ffmpeg && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Set the working directory
-WORKDIR /app
-
-# Copy built artifacts and production dependencies from the builder stage
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/.npmrc ./
-COPY --from=builder /app/turbo.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/agent ./agent
-COPY --from=builder /app/client ./client
-COPY --from=builder /app/lerna.json ./
-COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/characters ./characters
-
-# Expose necessary ports
-EXPOSE $PORT
-
-# Command to start the application
-CMD ["sh", "-c", "pnpm start --characters='characters/mythos/mythos.character.json' & pnpm start:client"]
+    apt
