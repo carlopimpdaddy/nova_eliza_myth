@@ -48,6 +48,7 @@ RUN rm -f .npmrc pnpm-lock.yaml && \
     echo "auto-install-peers=true" >> .npmrc && \
     echo "enable-pre-post-scripts=true" >> .npmrc && \
     npm install -g pnpm@9.4.0 turbo && \
+    pnpm add @solana-developers/helpers && \
     PNPM_PATCH_MODE=true PNPM_PATCHED_DEPENDENCIES=true NODE_OPTIONS="--max-old-space-size=4096" pnpm install --no-frozen-lockfile --force --config.strict-peer-dependencies=false
 
 # Build the project
