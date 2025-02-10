@@ -21,7 +21,7 @@ export abstract class DatabaseAdapter<DB = any> implements IDatabaseAdapter {
     /**
      * The database instance.
      */
-    public db!: DB;
+    db: DB;
 
     /**
      * Circuit breaker instance used to handle fault tolerance and prevent cascading failures.
@@ -332,6 +332,13 @@ export abstract class DatabaseAdapter<DB = any> implements IDatabaseAdapter {
      * @returns A Promise that resolves to a boolean indicating success or failure.
      */
     abstract removeParticipant(userId: UUID, roomId: UUID): Promise<boolean>;
+
+    /**
+     * Retrieves participants associated with a specific account.
+     * @param userId The UUID of the account.
+     * @returns A Promise that resolves to an array of Participant objects.
+     */
+    abstract getParticipantsForAccount(userId: UUID): Promise<Participant[]>;
 
     /**
      * Retrieves participants associated with a specific account.

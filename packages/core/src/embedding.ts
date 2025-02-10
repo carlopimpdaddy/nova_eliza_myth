@@ -31,50 +31,40 @@ export type EmbeddingConfig = {
     readonly provider: EmbeddingProviderType;
 };
 
-export const getEmbeddingConfig = (): EmbeddingConfig => {
-    const getModelDimensions = (provider: ModelProviderName) => {
-        return getEmbeddingModelSettings(provider)?.dimensions ?? 384;
-    };
-
-    const getModelName = (provider: ModelProviderName) => {
-        return getEmbeddingModelSettings(provider)?.name ?? "BGE-small-en-v1.5";
-    };
-
-    const dimensions = 
-        settings.USE_OPENAI_EMBEDDING === "true" 
-            ? getModelDimensions(ModelProviderName.OPENAI)
-            : settings.USE_OLLAMA_EMBEDDING === "true"
-            ? getModelDimensions(ModelProviderName.OLLAMA)
-            : settings.USE_GAIANET_EMBEDDING === "true"
-            ? getModelDimensions(ModelProviderName.GAIANET)
-            : settings.USE_HEURIST_EMBEDDING === "true"
-            ? getModelDimensions(ModelProviderName.HEURIST)
-            : 384;
-
-    const model = 
-        settings.USE_OPENAI_EMBEDDING === "true"
-            ? getModelName(ModelProviderName.OPENAI)
-            : settings.USE_OLLAMA_EMBEDDING === "true"
-            ? getModelName(ModelProviderName.OLLAMA)
-            : settings.USE_GAIANET_EMBEDDING === "true"
-            ? getModelName(ModelProviderName.GAIANET)
-            : settings.USE_HEURIST_EMBEDDING === "true"
-            ? getModelName(ModelProviderName.HEURIST)
-            : "BGE-small-en-v1.5";
-
-    const provider: EmbeddingProviderType = 
-        settings.USE_OPENAI_EMBEDDING === "true"
+export const getEmbeddingConfig = (): EmbeddingConfig => ({
+    dimensions:
+        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true"
+            ? getEmbeddingModelSettings(ModelProviderName.OPENAI).dimensions
+            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true"
+              ? getEmbeddingModelSettings(ModelProviderName.OLLAMA).dimensions
+              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true"
+                ? getEmbeddingModelSettings(ModelProviderName.GAIANET)
+                      .dimensions
+                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true"
+                  ? getEmbeddingModelSettings(ModelProviderName.HEURIST)
+                        .dimensions
+                  : 384, // BGE
+    model:
+        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true"
+            ? getEmbeddingModelSettings(ModelProviderName.OPENAI).name
+            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true"
+              ? getEmbeddingModelSettings(ModelProviderName.OLLAMA).name
+              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true"
+                ? getEmbeddingModelSettings(ModelProviderName.GAIANET).name
+                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true"
+                  ? getEmbeddingModelSettings(ModelProviderName.HEURIST).name
+                  : "BGE-small-en-v1.5",
+    provider:
+        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true"
             ? "OpenAI"
-            : settings.USE_OLLAMA_EMBEDDING === "true"
-            ? "Ollama"
-            : settings.USE_GAIANET_EMBEDDING === "true"
-            ? "GaiaNet"
-            : settings.USE_HEURIST_EMBEDDING === "true"
-            ? "Heurist"
-            : "BGE";
-
-    return { dimensions, model, provider };
-};
+            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true"
+              ? "Ollama"
+              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true"
+                ? "GaiaNet"
+                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true"
+                  ? "Heurist"
+                  : "BGE",
+});
 
 async function getRemoteEmbedding(
     input: string,
@@ -151,20 +141,24 @@ export function getEmbeddingType(runtime: IAgentRuntime): "local" | "remote" {
 }
 
 export function getEmbeddingZeroVector(): number[] {
-    const getModelDimensions = (provider: ModelProviderName): number => {
-        return getEmbeddingModelSettings(provider)?.dimensions ?? 384;
-    };
-
     let embeddingDimension = 384; // Default BGE dimension
 
-    if (settings.USE_OPENAI_EMBEDDING === "true") {
-        embeddingDimension = getModelDimensions(ModelProviderName.OPENAI);
-    } else if (settings.USE_OLLAMA_EMBEDDING === "true") {
-        embeddingDimension = getModelDimensions(ModelProviderName.OLLAMA);
-    } else if (settings.USE_GAIANET_EMBEDDING === "true") {
-        embeddingDimension = getModelDimensions(ModelProviderName.GAIANET);
-    } else if (settings.USE_HEURIST_EMBEDDING === "true") {
-        embeddingDimension = getModelDimensions(ModelProviderName.HEURIST);
+    if (settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true") {
+        embeddingDimension = getEmbeddingModelSettings(
+            ModelProviderName.OPENAI
+        ).dimensions; // OpenAI dimension
+    } else if (settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true") {
+        embeddingDimension = getEmbeddingModelSettings(
+            ModelProviderName.OLLAMA
+        ).dimensions; // Ollama mxbai-embed-large dimension
+    } else if (settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true") {
+        embeddingDimension = getEmbeddingModelSettings(
+            ModelProviderName.GAIANET
+        ).dimensions; // GaiaNet dimension
+    } else if (settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true") {
+        embeddingDimension = getEmbeddingModelSettings(
+            ModelProviderName.HEURIST
+        ).dimensions; // Heurist dimension
     }
 
     return Array(embeddingDimension).fill(0);
@@ -234,28 +228,25 @@ export async function embed(runtime: IAgentRuntime, input: string) {
         });
     }
 
-    if (config.provider === EmbeddingProvider.GaiaNet) {
-        const endpoint = runtime.character.modelEndpointOverride ||
-            getEndpoint(ModelProviderName.GAIANET) ||
-            settings.SMALL_GAIANET_SERVER_URL ||
-            settings.MEDIUM_GAIANET_SERVER_URL ||
-            settings.LARGE_GAIANET_SERVER_URL ||
-            "";
-
+    if (config.provider == EmbeddingProvider.GaiaNet) {
         return await getRemoteEmbedding(input, {
             model: config.model,
-            endpoint,
-            apiKey: settings.GAIANET_API_KEY || runtime.token || "",
+            endpoint:
+                runtime.character.modelEndpointOverride ||
+                getEndpoint(ModelProviderName.GAIANET) ||
+                settings.SMALL_GAIANET_SERVER_URL ||
+                settings.MEDIUM_GAIANET_SERVER_URL ||
+                settings.LARGE_GAIANET_SERVER_URL,
+            apiKey: settings.GAIANET_API_KEY || runtime.token,
             dimensions: config.dimensions,
         });
     }
 
     if (config.provider === EmbeddingProvider.Heurist) {
-        const endpoint = getEndpoint(ModelProviderName.HEURIST) ?? "";
         return await getRemoteEmbedding(input, {
             model: config.model,
-            endpoint,
-            apiKey: runtime.token ?? "",
+            endpoint: getEndpoint(ModelProviderName.HEURIST),
+            apiKey: runtime.token,
             dimensions: config.dimensions,
         });
     }
@@ -275,9 +266,10 @@ export async function embed(runtime: IAgentRuntime, input: string) {
     // Fallback to remote override
     return await getRemoteEmbedding(input, {
         model: config.model,
-        endpoint: runtime.character.modelEndpointOverride ??
-            getEndpoint(runtime.character.modelProvider) ?? "",
-        apiKey: runtime.token ?? "",
+        endpoint:
+            runtime.character.modelEndpointOverride ||
+            getEndpoint(runtime.character.modelProvider),
+        apiKey: runtime.token,
         dimensions: config.dimensions,
     });
 
@@ -296,10 +288,10 @@ export async function embed(runtime: IAgentRuntime, input: string) {
     async function retrieveCachedEmbedding(
         runtime: IAgentRuntime,
         input: string
-    ): Promise<number[] | undefined> {
+    ) {
         if (!input) {
             elizaLogger.log("No input to retrieve cached embedding for");
-            return undefined;
+            return null;
         }
 
         const similaritySearchResult =
@@ -307,6 +299,6 @@ export async function embed(runtime: IAgentRuntime, input: string) {
         if (similaritySearchResult.length > 0) {
             return similaritySearchResult[0].embedding;
         }
-        return undefined;
+        return null;
     }
 }

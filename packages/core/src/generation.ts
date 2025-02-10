@@ -172,7 +172,7 @@ async function truncateTiktoken(
  */
 async function getOnChainEternalAISystemPrompt(
     runtime: IAgentRuntime
-): Promise<string | undefined> {
+): Promise<string> | undefined {
     const agentId = runtime.getSetting("ETERNALAI_AGENT_ID");
     const providerUrl = runtime.getSetting("ETERNALAI_RPC_URL");
     const contractAddress = runtime.getSetting(
@@ -502,7 +502,7 @@ export async function generateText({
     const max_context_length =
         modelConfiguration?.maxInputTokens || modelSettings.maxInputTokens;
     const max_response_length =
-        modelConfiguration?.maxOutputTokens ||
+        modelConfiguration?.max_response_length ||
         modelSettings.maxOutputTokens;
     const experimental_telemetry =
         modelConfiguration?.experimental_telemetry ||
@@ -594,12 +594,13 @@ export async function generateText({
                             options.body = JSON.stringify(body);
                         }
 
-                        if (!runtime.fetch) {
-                            throw new Error("Runtime fetch is not available");
-                        }
                         const fetching = await runtime.fetch(url, options);
 
-                        if (parseBooleanFromText(runtime.getSetting("ETERNALAI_LOG"))) {
+                        if (
+                            parseBooleanFromText(
+                                runtime.getSetting("ETERNALAI_LOG")
+                            )
+                        ) {
                             elizaLogger.info(
                                 "Request data: ",
                                 JSON.stringify(options, null, 2)
@@ -1161,14 +1162,7 @@ export async function generateText({
                     maxTokens: max_response_length,
                 });
 
-                // console.warn("veniceResponse:")
-                // console.warn(veniceResponse)
-                //rferrari: remove all text from <think> to </think>\n\n
-                response = veniceResponse
-                    .replace(/<think>[\s\S]*?<\/think>\s*\n*/g, '');
-                // console.warn(response)
-
-                // response = veniceResponse;
+                response = veniceResponse;
                 elizaLogger.debug("Received response from Venice model.");
                 break;
             }
@@ -2068,82 +2062,510 @@ interface ModelSettings {
 }
 
 /**
+ * Generates structured objects from a prompt using specified AI models and configuration options.
+ *
+ * @param {GenerationOptions} options - Configuration options for generating objects.
+ * @returns {Promise<any[]>} - A promise that resolves to an array of generated objects.
+ * @throws {Error} - Throws an error if the provider is unsupported or if generation fails.
+ */
+export const generateObject = async ({
+    runtime,
+    context,
+    modelClass,
+    schema,
+    schemaName,
+    schemaDescription,
+    stop,
+    mode = "json",
+    verifiableInference = false,
+    verifiableInferenceAdapter,
+    verifiableInferenceOptions,
+}: GenerationOptions): Promise<GenerateObjectResult<unknown>> => {
+    if (!context) {
+        const errorMessage = "generateObject context is empty";
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    const provider = runtime.modelProvider;
+    const modelSettings = getModelSettings(runtime.modelProvider, modelClass);
+    const model = modelSettings.name;
+    const temperature = modelSettings.temperature;
+    const frequency_penalty = modelSettings.frequency_penalty;
+    const presence_penalty = modelSettings.presence_penalty;
+    const max_context_length = modelSettings.maxInputTokens;
+    const max_response_length = modelSettings.maxOutputTokens;
+    const experimental_telemetry = modelSettings.experimental_telemetry;
+    const apiKey = runtime.token;
+
+    try {
+        context = await trimTokens(context, max_context_length, runtime);
+
+        const modelOptions: ModelSettings = {
+            prompt: context,
+            temperature,
+            maxTokens: max_response_length,
+            frequencyPenalty: frequency_penalty,
+            presencePenalty: presence_penalty,
+            stop: stop || modelSettings.stop,
+            experimental_telemetry: experimental_telemetry,
+        };
+
+        const response = await handleProvider({
+            provider,
+            model,
+            apiKey,
+            schema,
+            schemaName,
+            schemaDescription,
+            mode,
+            modelOptions,
+            runtime,
+            context,
+            modelClass,
+            verifiableInference,
+            verifiableInferenceAdapter,
+            verifiableInferenceOptions,
+        });
+
+        return response;
+    } catch (error) {
+        console.error("Error in generateObject:", error);
+        throw error;
+    }
+};
+
+/**
  * Interface for provider-specific generation options.
  */
 interface ProviderOptions {
     runtime: IAgentRuntime;
     provider: ModelProviderName;
-    model: string;
+    model: any;
     apiKey: string;
     schema?: ZodSchema;
     schemaName?: string;
     schemaDescription?: string;
+    mode?: "auto" | "json" | "tool";
+    experimental_providerMetadata?: Record<string, unknown>;
     modelOptions: ModelSettings;
+    modelClass: ModelClass;
+    context: string;
+    verifiableInference?: boolean;
+    verifiableInferenceAdapter?: IVerifiableInferenceAdapter;
+    verifiableInferenceOptions?: VerifiableInferenceOptions;
 }
 
-// Add TogetherAI response type
-interface TogetherAIImageResponse {
-    data: Array<{
-        url: string;
-        content_type?: string;
-        image_type?: string;
-    }>;
+/**
+ * Handles AI generation based on the specified provider.
+ *
+ * @param {ProviderOptions} options - Configuration options specific to the provider.
+ * @returns {Promise<any[]>} - A promise that resolves to an array of generated objects.
+ */
+export async function handleProvider(
+    options: ProviderOptions
+): Promise<GenerateObjectResult<unknown>> {
+    const {
+        provider,
+        runtime,
+        context,
+        modelClass,
+        //verifiableInference,
+        //verifiableInferenceAdapter,
+        //verifiableInferenceOptions,
+    } = options;
+    switch (provider) {
+        case ModelProviderName.OPENAI:
+        case ModelProviderName.ETERNALAI:
+        case ModelProviderName.ALI_BAILIAN:
+        case ModelProviderName.VOLENGINE:
+        case ModelProviderName.LLAMACLOUD:
+        case ModelProviderName.TOGETHER:
+        case ModelProviderName.NANOGPT:
+        case ModelProviderName.AKASH_CHAT_API:
+        case ModelProviderName.LMSTUDIO:
+            return await handleOpenAI(options);
+        case ModelProviderName.ANTHROPIC:
+        case ModelProviderName.CLAUDE_VERTEX:
+            return await handleAnthropic(options);
+        case ModelProviderName.GROK:
+            return await handleGrok(options);
+        case ModelProviderName.GROQ:
+            return await handleGroq(options);
+        case ModelProviderName.LLAMALOCAL:
+            return await generateObjectDeprecated({
+                runtime,
+                context,
+                modelClass,
+            });
+        case ModelProviderName.GOOGLE:
+            return await handleGoogle(options);
+        case ModelProviderName.MISTRAL:
+            return await handleMistral(options);
+        case ModelProviderName.REDPILL:
+            return await handleRedPill(options);
+        case ModelProviderName.OPENROUTER:
+            return await handleOpenRouter(options);
+        case ModelProviderName.OLLAMA:
+            return await handleOllama(options);
+        case ModelProviderName.DEEPSEEK:
+            return await handleDeepSeek(options);
+        case ModelProviderName.LIVEPEER:
+            return await handleLivepeer(options);
+        default: {
+            const errorMessage = `Unsupported provider: ${provider}`;
+            elizaLogger.error(errorMessage);
+            throw new Error(errorMessage);
+        }
+    }
 }
-
-// Fix processImage and base64ToBuffer function signatures
-function processImage(image: Buffer): string {
-    // Implementation
-    return image.toString('base64');
-}
-
-function base64ToBuffer(base64String: string): Buffer {
-    return Buffer.from(base64String, 'base64');
-}
-
-// Fix handleOpenAI function
+/**
+ * Handles object generation for OpenAI.
+ *
+ * @param {ProviderOptions} options - Options specific to OpenAI.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
 async function handleOpenAI({
     model,
     apiKey,
     schema,
     schemaName,
     schemaDescription,
+    mode = "json",
     modelOptions,
-    provider,
+    provider: _provider,
     runtime,
 }: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
-    const endpoint = runtime.character.modelEndpointOverride ?? getEndpoint(provider) ?? "";
-    const baseURL = getCloudflareGatewayBaseURL(runtime, "openai") ?? endpoint;
+    const baseURL =
+        getCloudflareGatewayBaseURL(runtime, "openai") ||
+        models.openai.endpoint;
     const openai = createOpenAI({ apiKey, baseURL });
     return await aiGenerateObject({
         model: openai.languageModel(model),
         schema,
         schemaName,
         schemaDescription,
-        mode: "json",
+        mode,
         ...modelOptions,
     });
 }
 
-// Fix handleAnthropic function
+/**
+ * Handles object generation for Anthropic models.
+ *
+ * @param {ProviderOptions} options - Options specific to Anthropic.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
 async function handleAnthropic({
     model,
     apiKey,
     schema,
     schemaName,
     schemaDescription,
+    mode = "auto",
     modelOptions,
     runtime,
 }: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
-    const baseURL = getCloudflareGatewayBaseURL(runtime, "anthropic") ?? "";
+    elizaLogger.debug("Handling Anthropic request with Cloudflare check");
+    if (mode === "json") {
+        elizaLogger.warn("Anthropic mode is set to json, changing to auto");
+        mode = "auto";
+    }
+    const baseURL = getCloudflareGatewayBaseURL(runtime, "anthropic");
+    elizaLogger.debug("Anthropic handleAnthropic baseURL:", { baseURL });
+
     const anthropic = createAnthropic({ apiKey, baseURL });
     return await aiGenerateObject({
         model: anthropic.languageModel(model),
         schema,
         schemaName,
         schemaDescription,
-        mode: "json",
+        mode,
         ...modelOptions,
     });
+}
+
+/**
+ * Handles object generation for Grok models.
+ *
+ * @param {ProviderOptions} options - Options specific to Grok.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
+async function handleGrok({
+    model,
+    apiKey,
+    schema,
+    schemaName,
+    schemaDescription,
+    mode = "json",
+    modelOptions,
+}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    const grok = createOpenAI({ apiKey, baseURL: models.grok.endpoint });
+    return await aiGenerateObject({
+        model: grok.languageModel(model, { parallelToolCalls: false }),
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        ...modelOptions,
+    });
+}
+
+/**
+ * Handles object generation for Groq models.
+ *
+ * @param {ProviderOptions} options - Options specific to Groq.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
+async function handleGroq({
+    model,
+    apiKey,
+    schema,
+    schemaName,
+    schemaDescription,
+    mode = "json",
+    modelOptions,
+    runtime,
+}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    elizaLogger.debug("Handling Groq request with Cloudflare check");
+    const baseURL = getCloudflareGatewayBaseURL(runtime, "groq");
+    elizaLogger.debug("Groq handleGroq baseURL:", { baseURL });
+
+    const groq = createGroq({ apiKey, baseURL });
+    return await aiGenerateObject({
+        model: groq.languageModel(model),
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        ...modelOptions,
+    });
+}
+
+/**
+ * Handles object generation for Google models.
+ *
+ * @param {ProviderOptions} options - Options specific to Google.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
+async function handleGoogle({
+    model,
+    apiKey: _apiKey,
+    schema,
+    schemaName,
+    schemaDescription,
+    mode = "json",
+    modelOptions,
+}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    const google = createGoogleGenerativeAI();
+    return await aiGenerateObject({
+        model: google(model),
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        ...modelOptions,
+    });
+}
+
+/**
+ * Handles object generation for Mistral models.
+ *
+ * @param {ProviderOptions} options - Options specific to Mistral.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
+async function handleMistral({
+    model,
+    schema,
+    schemaName,
+    schemaDescription,
+    mode,
+    modelOptions,
+}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    const mistral = createMistral();
+    return await aiGenerateObject({
+        model: mistral(model),
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        ...modelOptions,
+    });
+}
+
+/**
+ * Handles object generation for Redpill models.
+ *
+ * @param {ProviderOptions} options - Options specific to Redpill.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
+async function handleRedPill({
+    model,
+    apiKey,
+    schema,
+    schemaName,
+    schemaDescription,
+    mode = "json",
+    modelOptions,
+}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    const redPill = createOpenAI({ apiKey, baseURL: models.redpill.endpoint });
+    return await aiGenerateObject({
+        model: redPill.languageModel(model),
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        ...modelOptions,
+    });
+}
+
+/**
+ * Handles object generation for OpenRouter models.
+ *
+ * @param {ProviderOptions} options - Options specific to OpenRouter.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
+async function handleOpenRouter({
+    model,
+    apiKey,
+    schema,
+    schemaName,
+    schemaDescription,
+    mode = "json",
+    modelOptions,
+}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    const openRouter = createOpenAI({
+        apiKey,
+        baseURL: models.openrouter.endpoint,
+    });
+    return await aiGenerateObject({
+        model: openRouter.languageModel(model),
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        ...modelOptions,
+    });
+}
+
+/**
+ * Handles object generation for Ollama models.
+ *
+ * @param {ProviderOptions} options - Options specific to Ollama.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
+async function handleOllama({
+    model,
+    schema,
+    schemaName,
+    schemaDescription,
+    mode = "json",
+    modelOptions,
+    provider,
+}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    const ollamaProvider = createOllama({
+        baseURL: getEndpoint(provider) + "/api",
+    });
+    const ollama = ollamaProvider(model);
+    return await aiGenerateObject({
+        model: ollama,
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        ...modelOptions,
+    });
+}
+
+/**
+ * Handles object generation for DeepSeek models.
+ *
+ * @param {ProviderOptions} options - Options specific to DeepSeek.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
+async function handleDeepSeek({
+    model,
+    apiKey,
+    schema,
+    schemaName,
+    schemaDescription,
+    mode,
+    modelOptions,
+}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    const openai = createOpenAI({ apiKey, baseURL: models.deepseek.endpoint });
+    return await aiGenerateObject({
+        model: openai.languageModel(model),
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        ...modelOptions,
+    });
+}
+
+/**
+ * Handles object generation for Amazon Bedrock models.
+ *
+ * @param {ProviderOptions} options - Options specific to Amazon Bedrock.
+ * @returns {Promise<GenerateObjectResult<unknown>>} - A promise that resolves to generated objects.
+ */
+async function handleBedrock({
+    model,
+    schema,
+    schemaName,
+    schemaDescription,
+    mode,
+    modelOptions,
+    provider,
+}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    return await aiGenerateObject({
+        model: bedrock(model),
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        ...modelOptions,
+    });
+}
+
+async function handleLivepeer({
+    model,
+    apiKey,
+    schema,
+    schemaName,
+    schemaDescription,
+    mode,
+    modelOptions,
+}: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    console.log("Livepeer provider api key:", apiKey);
+    if (!apiKey) {
+        throw new Error(
+            "Livepeer provider requires LIVEPEER_GATEWAY_URL to be configured"
+        );
+    }
+
+    const livepeerClient = createOpenAI({
+        apiKey,
+        baseURL: apiKey, // Use the apiKey as the baseURL since it contains the gateway URL
+    });
+
+    return await aiGenerateObject({
+        model: livepeerClient.languageModel(model),
+        schema,
+        schemaName,
+        schemaDescription,
+        mode,
+        ...modelOptions,
+    });
+}
+
+// Add type definition for Together AI response
+interface TogetherAIImageResponse {
+    data: Array<{
+        url: string;
+        content_type?: string;
+        image_type?: string;
+    }>;
 }
 
 export async function generateTweetActions({

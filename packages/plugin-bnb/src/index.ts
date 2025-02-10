@@ -15,9 +15,20 @@ import { deployAction } from "./actions/deploy";
 
 export const bnbPlugin: Plugin = {
     name: "bnb",
-    description: "BNB Chain Plugin for Eliza",
-    actions: [],
-    providers: []
+    description:
+        "BNB Smart Chain (BSC) and opBNB integration plugin supporting transfers, swaps, staking, bridging, and token deployments",
+    providers: [bnbWalletProvider],
+    evaluators: [],
+    services: [],
+    actions: [
+        getBalanceAction,
+        transferAction,
+        swapAction,
+        bridgeAction,
+        stakeAction,
+        faucetAction,
+        deployAction,
+    ],
 };
 
 export default bnbPlugin;

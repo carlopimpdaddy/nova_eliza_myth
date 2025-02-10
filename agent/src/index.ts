@@ -84,10 +84,7 @@ import { coinmarketcapPlugin } from "@elizaos/plugin-coinmarketcap";
 import { confluxPlugin } from "@elizaos/plugin-conflux";
 import { createCosmosPlugin } from "@elizaos/plugin-cosmos";
 import { cronosZkEVMPlugin } from "@elizaos/plugin-cronoszkevm";
-import { deskExchangePlugin } from "@elizaos/plugin-desk-exchange";
-import { deskExchangePlugin } from "@elizaos/plugin-desk-exchange";
 import { evmPlugin } from "@elizaos/plugin-evm";
-import { edwinPlugin } from "@elizaos/plugin-edwin";
 import { flowPlugin } from "@elizaos/plugin-flow";
 import { fuelPlugin } from "@elizaos/plugin-fuel";
 import { genLayerPlugin } from "@elizaos/plugin-genlayer";
@@ -1070,10 +1067,6 @@ export async function createAgent(
                 getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith("0x"))
                 ? evmPlugin
                 : null,
-            (getSecret(character, "EVM_PRIVATE_KEY") ||
-                getSecret(character, "SOLANA_PRIVATE_KEY"))
-                ? edwinPlugin
-                : null,
             (getSecret(character, "EVM_PUBLIC_KEY") ||
                 getSecret(character, "INJECTIVE_PUBLIC_KEY")) &&
             getSecret(character, "INJECTIVE_PRIVATE_KEY")
@@ -1302,12 +1295,6 @@ export async function createAgent(
             getSecret(character, "ARBITRAGE_BUNDLE_EXECUTOR_ADDRESS")
                 ? arbitragePlugin
                 : null,
-            getSecret(character, "DESK_EXCHANGE_PRIVATE_KEY")
-                ? deskExchangePlugin
-                : null,
-            getSecret(character, "DESK_EXCHANGE_NETWORK")
-                ? deskExchangePlugin
-                : null,
         ]
             .flat()
             .filter(Boolean),
@@ -1524,9 +1511,11 @@ const startAgents = async () => {
 
     directClient.start(serverPort);
 
-    elizaLogger.info(`Server started on alternate port ${serverPort}`);
+    if (serverPort !== Number.parseInt(settings.SERVER_PORT || "3000")) {
+        elizaLogger.log(`Server started on alternate port ${serverPort}`);
+    }
 
-    elizaLogger.info(
+    elizaLogger.log(
         "Run `pnpm start:client` to start the client and visit the outputted URL (http://localhost:5173) to chat with your agents. When running multiple agents, use client with different port `SERVER_PORT=3001 pnpm start:client`"
     );
 };

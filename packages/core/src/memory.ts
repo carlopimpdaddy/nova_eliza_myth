@@ -198,14 +198,9 @@ export class MemoryManager implements IMemoryManager {
         });
     }
 
-    async getMemoryById(id: UUID | undefined): Promise<Memory | null> {
-        if (!id) {
-            return null;
-        }
+    async getMemoryById(id: UUID): Promise<Memory | null> {
         const result = await this.runtime.databaseAdapter.getMemoryById(id);
-        if (result && result.agentId !== this.runtime.agentId) {
-            return null;
-        }
+        if (result && result.agentId !== this.runtime.agentId) return null;
         return result;
     }
 
@@ -214,10 +209,7 @@ export class MemoryManager implements IMemoryManager {
      * @param memoryId The ID of the memory to remove.
      * @returns A Promise that resolves when the operation completes.
      */
-    async removeMemory(memoryId: UUID | undefined): Promise<void> {
-        if (!memoryId) {
-            return;
-        }
+    async removeMemory(memoryId: UUID): Promise<void> {
         await this.runtime.databaseAdapter.removeMemory(
             memoryId,
             this.tableName
@@ -229,10 +221,7 @@ export class MemoryManager implements IMemoryManager {
      * @param roomId The room ID to remove memories for.
      * @returns A Promise that resolves when the operation completes.
      */
-    async removeAllMemories(roomId: UUID | undefined): Promise<void> {
-        if (!roomId) {
-            return;
-        }
+    async removeAllMemories(roomId: UUID): Promise<void> {
         await this.runtime.databaseAdapter.removeAllMemories(
             roomId,
             this.tableName
@@ -245,10 +234,7 @@ export class MemoryManager implements IMemoryManager {
      * @param unique Whether to count unique memories only.
      * @returns A Promise resolving to the count of memories.
      */
-    async countMemories(roomId: UUID | undefined, unique = true): Promise<number> {
-        if (!roomId) {
-            return 0;
-        }
+    async countMemories(roomId: UUID, unique = true): Promise<number> {
         return await this.runtime.databaseAdapter.countMemories(
             roomId,
             unique,

@@ -2,8 +2,7 @@
 FROM node:23.3.0-slim AS builder
 
 # Install pnpm globally and necessary build tools
-RUN npm install -g pnpm@9.15.4 && \
-    RUN npm install -g pnpm@9.15.4 && \
+RUN npm install -g pnpm@9.4.0 && \
     apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y \
@@ -48,13 +47,9 @@ RUN pnpm run build && pnpm prune --prod
 FROM node:23.3.0-slim
 
 # Install runtime dependencies
-RUN npm install -g pnpm@9.15.4 && \
-    RUN npm install -g pnpm@9.15.4 && \
+RUN npm install -g pnpm@9.4.0 && \
     apt-get update && \
     apt-get install -y \
-    git \
-    python3 \
-    ffmpeg && \
     git \
     python3 \
     ffmpeg && \
