@@ -48,7 +48,7 @@ RUN rm -f .npmrc pnpm-lock.yaml && \
     echo "auto-install-peers=true" >> .npmrc && \
     echo "patchedDependencies={}" >> .npmrc && \
     npm install -g pnpm@9.4.0 turbo && \
-    PNPM_PATCHED_DEPENDENCIES=false pnpm install --no-frozen-lockfile --ignore-scripts --no-optional --force
+    PNPM_PATCH_MODE=false pnpm install --no-frozen-lockfile --ignore-scripts --no-optional --force
 
 # Build the project
 RUN pnpm exec turbo run build --filter=!eliza-docs && \
