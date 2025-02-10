@@ -38,7 +38,9 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN npm install -g pnpm@9.4.0 turbo && \
+RUN sed -i '/patch-commit/d' .npmrc && \
+    sed -i '/patchedDependencies/d' .npmrc && \
+    npm install -g pnpm@9.4.0 turbo && \
     pnpm install --no-frozen-lockfile --ignore-scripts && \
     pnpm update --recursive && \
     pnpm update @sei-js/core@latest && \
