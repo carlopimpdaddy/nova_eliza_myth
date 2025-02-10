@@ -38,12 +38,15 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN pnpm install --no-frozen-lockfile --ignore-scripts && \
+RUN pnpm install -g turbo && \
+    pnpm install --no-frozen-lockfile --ignore-scripts && \
     pnpm update @sei-js/core@latest && \
     pnpm remove @solana-developers/helpers || true
 
 # Build the project
-RUN pnpm run build && pnpm prune --prod
+RUN pnpm install && \
+    pnpm exec turbo run build --filter=!eliza-docs && \
+    pnpm prune --prod
 
 # Final runtime image
 FROM node:23.3.0-slim
