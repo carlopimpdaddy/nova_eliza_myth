@@ -40,11 +40,13 @@ COPY . .
 # Install dependencies
 RUN pnpm install -g turbo && \
     pnpm install --no-frozen-lockfile --ignore-scripts && \
+    pnpm update --recursive && \
     pnpm update @sei-js/core@latest && \
     pnpm remove @solana-developers/helpers || true
 
 # Build the project
-RUN pnpm install && \
+RUN pnpm install --no-frozen-lockfile && \
+    pnpm update --recursive && \
     pnpm exec turbo run build --filter=!eliza-docs && \
     pnpm prune --prod
 
