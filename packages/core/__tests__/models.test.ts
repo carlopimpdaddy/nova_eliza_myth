@@ -129,7 +129,11 @@ describe("Model Provider Configuration", () => {
     });
     describe("Livepeer Provider", () => {
         test("should have correct endpoint configuration", () => {
+<<<<<<< HEAD
             expect(models[ModelProviderName.LIVEPEER].endpoint).toBe("http://gateway.test-gateway");
+=======
+            expect(getEndpoint(ModelProviderName.LIVEPEER)).toBe("https://dream-gateway.livepeer.cloud");
+>>>>>>> v0.25.8
         });
 
         test("should have correct model mappings", () => {
