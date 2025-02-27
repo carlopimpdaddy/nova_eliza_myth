@@ -72,6 +72,10 @@ COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
+# Set environment variables
+ENV NODE_ENV=production
+ENV RAILWAY_VOLUME_MOUNT_PATH=/data
+
 # Expose necessary ports
 EXPOSE 3000
 
