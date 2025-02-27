@@ -63,6 +63,8 @@ RUN npm install -g pnpm@9.15.4 && \
 # Set the working directory
 WORKDIR /app
 
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
 
 # Copy built artifacts and production dependencies from the builder stage
 COPY --from=builder --mount=type=cache,id=s/1d90ee5f-5c7d-47bf-8914-2a4eb0809f73-dist,target=/app/dist /app/dist ./dist
