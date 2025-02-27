@@ -41,7 +41,7 @@ COPY . .
 RUN pnpm install
 
 # Build the project
-RUN pnpm run build && pnpm prune --prod
+RUN pnpm run build --verbose && pnpm prune --prod
 
 # List contents of important directories for debugging
 RUN ls -la /app/agent/dist || true
