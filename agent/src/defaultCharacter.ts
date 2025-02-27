@@ -2,6 +2,12 @@ import { Character, ModelProviderName } from "./types.ts";
 
 export const defaultCharacter: Character = {
     name: "Nova 11 Wing",
+    database: {
+        adapter: "@elizaos-plugins/adapter-sqlite",
+        options: {
+        filename: `${process.env.RAILWAY_VOLUME_MOUNT_PATH}/sqlite/db.sqlite`
+        }
+    },
     username: "mythosbuild",
     screenName: "Nova 11 Wing",
     plugins: [],
