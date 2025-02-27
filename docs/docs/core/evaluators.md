@@ -43,28 +43,11 @@ The key thing to remember is: evaluators are your agent's way of learning and gr
 Here's a basic example of an evaluator implementation:
 
 ```typescript
-<<<<<<< HEAD
-import { Evaluator, IAgentRuntime, Memory, State } from "@elizaos/core-core";
-```
-
-2. Choose or create an evaluator:
-
-```typescript
-const evaluator: Evaluator = {
-    name: "BASIC_EVALUATOR",
-    similes: ["SIMPLE_EVALUATOR"],
-    description: "Evaluates basic conversation elements",
-    validate: async (runtime: IAgentRuntime, message: Memory) => true,
-    handler: async (runtime: IAgentRuntime, message: Memory) => {
-        // Evaluation logic here
-        return result;
-=======
 const evaluator = {
     // Should this evaluator run right now?
     validate: async (runtime, message) => {
         // Return true to run, false to skip
         return shouldRunThisTime;
->>>>>>> v0.25.8
     },
 
     // What to do when it runs

@@ -16,18 +16,7 @@ Eliza consists of these core components:
 - **Character Files**: JSON configurations that define agent personalities
 - **Memory System**: Database that stores and manages agent information using vector embeddings
 
-<<<<<<< HEAD
-- **Agents**: These are the core elements that represent individual AI personalities. Agents operate within a runtime environment and interact with various platforms.
-- **Actions**: Actions are predefined behaviors that agents can execute in response to messages, enabling them to perform tasks and interact with external systems.
-- **Clients**: Clients act as interfaces between agents and specific platforms, such as Discord, Twitter, and Telegram. They handle platform-specific message formats and communication protocols.
-- **Plugins**: Plugins are modular way to extend the core functionality with additional features, actions, evaluators, and providers. They are self-contained modules that can be easily added or removed to customize your agent's capabilities
-- **Providers**: Providers supply agents with contextual information, including time awareness, user relationships, and data from external sources.
-- **Evaluators**: These modules assess and extract information from conversations, helping agents track goals, build memory, and maintain context awareness.
-- **Character Files**: These JSON files define the personality, knowledge, and behavior of each AI agent.
-- **Memory System**: Eliza features a sophisticated memory management system that utilizes vector embeddings and relational database storage to store and retrieve information for agents.
-=======
 ### What's the difference between v1 and v2?
->>>>>>> v0.25.8
 
 Note: It's recommended for devs to keep working with v1, v2 will be mostly backwards compatible
 

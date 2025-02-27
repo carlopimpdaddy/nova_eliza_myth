@@ -2,7 +2,7 @@
 FROM node:23.3.0-slim AS builder
 
 # Install pnpm globally and necessary build tools
-RUN npm install -g pnpm@9.4.0 && \
+RUN npm install -g pnpm@9.15.4 && \
     apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y \
@@ -24,7 +24,7 @@ RUN npm install -g pnpm@9.4.0 && \
     libpango1.0-dev \
     libgif-dev \
     openssl \
-    libssl-dev && \
+    libssl-dev libsecret-1-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -41,14 +41,13 @@ COPY . .
 RUN pnpm install
 
 # Build the project
-RUN pnpm exec turbo run build --filter=!eliza-docs && \
-    pnpm prune --prod
+RUN pnpm run build && pnpm prune --prod
 
 # Final runtime image
 FROM node:23.3.0-slim
 
 # Install runtime dependencies
-RUN npm install -g pnpm@9.4.0 && \
+RUN npm install -g pnpm@9.15.4 && \
     apt-get update && \
     apt-get install -y \
     git \
@@ -74,7 +73,7 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
 # Expose necessary ports
-EXPOSE $PORT
+EXPOSE 3000 5173
 
 # Command to start the application
-CMD ["sh", "-c", "pnpm start --characters='characters/mythos/mythos.character.json' & pnpm start:client"] 
+CMD ["sh", "-c", "pnpm start & pnpm start:client"]
