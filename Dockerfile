@@ -40,8 +40,8 @@ COPY . .
 # Install dependencies
 RUN pnpm install
 
-export DOCKER_BUILDKIT=1
-export COMPOSE_DOCKER_CLI_BUILD=1
+ENV DOCKER_BUILDKIT=1
+ENV COMPOSE_DOCKER_CLI_BUILD=1
 
 # Build the project
 RUN pnpm run build --verbose && pnpm prune --prod
