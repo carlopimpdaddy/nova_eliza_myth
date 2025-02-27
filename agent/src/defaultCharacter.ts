@@ -4,9 +4,7 @@ export const defaultCharacter: Character = {
     name: "Nova 11 Wing",
     username: "mythosbuild",
     screenName: "Nova 11 Wing",
-    plugins: [
-        "web-search"
-    ],
+    plugins: [],
     clients: [
         "twitter"
     ],
