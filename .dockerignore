@@ -19,5 +19,3 @@ node_modules
 # Ignore build artifacts from the host
 dist
 build
-coverage
-.turbo

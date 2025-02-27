@@ -5,7 +5,10 @@ export const defaultCharacter: Character = {
     database: {
         adapter: "@elizaos-plugins/adapter-sqlite",
         options: {
-        filename: `${process.env.RAILWAY_VOLUME_MOUNT_PATH}/sqlite/db.sqlite`
+            database: process.env.DATABASE_URL || 'sqlite:///data/sqlite/db.sqlite3',
+            migrations: {
+                directory: './migrations'
+            }
         }
     },
     username: "mythosbuild",
