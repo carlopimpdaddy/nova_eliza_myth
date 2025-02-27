@@ -75,7 +75,7 @@ COPY --from=builder /app/lerna.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
-COPY --from=builder /app/agent/dist ./dist
+COPY --from=builder /app/dist ./dist
 
 # Expose necessary ports
 EXPOSE 3000
