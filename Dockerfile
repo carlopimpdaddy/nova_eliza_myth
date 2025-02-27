@@ -63,7 +63,9 @@ RUN npm install -g pnpm@9.15.4 && \
 # Set the working directory
 WORKDIR /app
 
+
 # Copy built artifacts and production dependencies from the builder stage
+COPY --from=builder --mount=type=cache,id=s/dist,target=/app/dist /app/dist ./dist
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/.npmrc ./
@@ -75,7 +77,6 @@ COPY --from=builder /app/lerna.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
-COPY --from=builder /app/dist ./dist
 
 # Expose necessary ports
 EXPOSE 3000
