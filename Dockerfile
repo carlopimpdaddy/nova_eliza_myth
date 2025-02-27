@@ -43,7 +43,11 @@ RUN pnpm install
 # Build the project
 RUN pnpm run build && pnpm prune --prod
 
-# Final runtime image
+# List contents of important directories for debugging
+RUN ls -la /app/agent/dist || true
+RUN ls -la /app/dist || true
+
+# Production stage
 FROM node:23.3.0-slim
 
 # Install runtime dependencies
@@ -71,10 +75,6 @@ COPY --from=builder /app/lerna.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
-
-# Set environment variables
-ENV NODE_ENV=production
-ENV RAILWAY_VOLUME_MOUNT_PATH=/data
 
 # Expose necessary ports
 EXPOSE 3000
