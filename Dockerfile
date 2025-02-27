@@ -65,7 +65,7 @@ WORKDIR /app
 
 
 # Copy built artifacts and production dependencies from the builder stage
-COPY --from=builder /app/dist ./dist
+COPY --from=builder --mount=type=cache,id=s/dist,target=/app/dist /app/dist ./dist
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/.npmrc ./
