@@ -40,20 +40,10 @@ COPY . .
 # Install dependencies
 RUN pnpm install
 
-ENV DOCKER_BUILDKIT=1
-ENV COMPOSE_DOCKER_CLI_BUILD=1
-
 # Build the project
 RUN pnpm run build && pnpm prune --prod
 
-# List contents of important directories for debugging
-RUN ls -la /app || true
-RUN mkdir -p /app/dist /app/agent/dist
-RUN touch /app/dist/.keep /app/agent/dist/.keep
-RUN ls -la /app/agent/dist || true
-RUN ls -la /app/dist || true
-
-# Production stage
+# Final runtime image
 FROM node:23.3.0-slim
 
 # Install runtime dependencies
@@ -62,19 +52,14 @@ RUN npm install -g pnpm@9.15.4 && \
     apt-get install -y \
     git \
     python3 \
-    ffmpeg \
-    curl && \
+    ffmpeg && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Set the working directory
 WORKDIR /app
 
-# Create necessary directories
-RUN mkdir -p ./dist
-
 # Copy built artifacts and production dependencies from the builder stage
-COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/.npmrc ./
@@ -88,30 +73,7 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
 # Expose necessary ports
-EXPOSE 3000 8000
-
-# Add environment variables to ensure proper network binding
-ENV HOST=0.0.0.0
-ENV PORT=3000
-
-# Create a health check server script
-RUN echo 'const http = require("http");\n\
-    const server = http.createServer((req, res) => {\n\
-    if (req.url === "/health") {\n\
-    res.writeHead(200, {"Content-Type": "application/json"});\n\
-    res.end(JSON.stringify({ status: "ok" }));\n\
-    } else {\n\
-    res.writeHead(404);\n\
-    res.end();\n\
-    }\n\
-    });\n\
-    server.listen(8080, "0.0.0.0", () => {\n\
-    console.log("Health check server running on port 8080");\n\
-    });\n' > /app/health-server.js
-
-# Create a simple startup script
-RUN echo '#!/bin/sh\necho "Starting application..."\nnode /app/health-server.js &\npnpm start & pnpm start:client & tail -f /dev/null' > /app/start.sh && \
-    chmod +x /app/start.sh
+EXPOSE 3000 5173
 
 # Command to start the application
-CMD ["sh", "-c", "node /app/health-server.js & pnpm start & pnpm start:client & tail -f /dev/null"]
+CMD ["sh", "-c", "pnpm start & pnpm start:client"]
