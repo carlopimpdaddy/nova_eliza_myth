@@ -274,150 +274,6 @@ RUN echo '// Direct Twitter client initializer' > /app/twitter-initializer.js &&
     echo 'const clientDir = path.join("/app/eliza/agent/src/clients");' >> /app/twitter-initializer.js && \
     echo 'const twitterDir = path.join(clientDir, "twitter");' >> /app/twitter-initializer.js && \
     echo '' >> /app/twitter-initializer.js && \
-    echo '// Create Twitter client directories and files if they don\'t exist' >> /app/twitter-initializer.js && \
-    echo 'if (!fs.existsSync(clientDir)) {' >> /app/twitter-initializer.js && \
-    echo '  console.log("Creating clients directory:", clientDir);' >> /app/twitter-initializer.js && \
-    echo '  fs.mkdirSync(clientDir, { recursive: true });' >> /app/twitter-initializer.js && \
-    echo '}' >> /app/twitter-initializer.js && \
-    echo '' >> /app/twitter-initializer.js && \
-    echo 'if (!fs.existsSync(twitterDir)) {' >> /app/twitter-initializer.js && \
-    echo '  console.log("Creating Twitter client directory:", twitterDir);' >> /app/twitter-initializer.js && \
-    echo '  fs.mkdirSync(twitterDir, { recursive: true });' >> /app/twitter-initializer.js && \
-    echo '  ' >> /app/twitter-initializer.js && \
-    echo '  // Create index.ts for Twitter client' >> /app/twitter-initializer.js && \
-    echo '  const indexPath = path.join(twitterDir, "index.ts");' >> /app/twitter-initializer.js && \
-    echo '  console.log("Creating Twitter client index file:", indexPath);' >> /app/twitter-initializer.js && \
-    echo '  const indexContent = `' >> /app/twitter-initializer.js && \
-    echo '  import { Character } from "../../types";' >> /app/twitter-initializer.js && \
-    echo '  import { TwitterClient } from "./twitter-client";' >> /app/twitter-initializer.js && \
-    echo '  ' >> /app/twitter-initializer.js && \
-    echo '  export default async function createTwitterClient(character: Character) {' >> /app/twitter-initializer.js && \
-    echo '    console.log("Creating Twitter client for character:", character.name);' >> /app/twitter-initializer.js && \
-    echo '    return new TwitterClient(character);' >> /app/twitter-initializer.js && \
-    echo '  }' >> /app/twitter-initializer.js && \
-    echo '  `;' >> /app/twitter-initializer.js && \
-    echo '  fs.writeFileSync(indexPath, indexContent);' >> /app/twitter-initializer.js && \
-    echo '  ' >> /app/twitter-initializer.js && \
-    echo '  // Create Twitter client implementation' >> /app/twitter-initializer.js && \
-    echo '  const clientPath = path.join(twitterDir, "twitter-client.ts");' >> /app/twitter-initializer.js && \
-    echo '  console.log("Creating Twitter client implementation:", clientPath);' >> /app/twitter-initializer.js && \
-    echo '  const clientContent = `' >> /app/twitter-initializer.js && \
-    echo '  import { Character } from "../../types";' >> /app/twitter-initializer.js && \
-    echo '  ' >> /app/twitter-initializer.js && \
-    echo '  export class TwitterClient {' >> /app/twitter-initializer.js && \
-    echo '    private character: Character;' >> /app/twitter-initializer.js && \
-    echo '    private twitterCredentials: any;' >> /app/twitter-initializer.js && \
-    echo '    private autopostInterval: NodeJS.Timeout | null = null;' >> /app/twitter-initializer.js && \
-    echo '    ' >> /app/twitter-initializer.js && \
-    echo '    constructor(character: Character) {' >> /app/twitter-initializer.js && \
-    echo '      this.character = character;' >> /app/twitter-initializer.js && \
-    echo '      console.log("Twitter client initialized for character:", character.name);' >> /app/twitter-initializer.js && \
-    echo '      ' >> /app/twitter-initializer.js && \
-    echo '      // Verify Twitter credentials from environment variables' >> /app/twitter-initializer.js && \
-    echo '      this.twitterCredentials = {' >> /app/twitter-initializer.js && \
-    echo '        apiKey: process.env.TWITTER_API_KEY || "",' >> /app/twitter-initializer.js && \
-    echo '        apiSecret: process.env.TWITTER_API_SECRET || "",' >> /app/twitter-initializer.js && \
-    echo '        accessToken: process.env.TWITTER_ACCESS_TOKEN || "",' >> /app/twitter-initializer.js && \
-    echo '        accessSecret: process.env.TWITTER_ACCESS_SECRET || ""' >> /app/twitter-initializer.js && \
-    echo '      };' >> /app/twitter-initializer.js && \
-    echo '      ' >> /app/twitter-initializer.js && \
-    echo '      if (this.hasCredentials()) {' >> /app/twitter-initializer.js && \
-    echo '        console.log("Twitter credentials verified, client ready to post");' >> /app/twitter-initializer.js && \
-    echo '        this.setupAutopost();' >> /app/twitter-initializer.js && \
-    echo '      } else {' >> /app/twitter-initializer.js && \
-    echo '        console.error("Missing Twitter credentials, client inactive");' >> /app/twitter-initializer.js && \
-    echo '      }' >> /app/twitter-initializer.js && \
-    echo '    }' >> /app/twitter-initializer.js && \
-    echo '    ' >> /app/twitter-initializer.js && \
-    echo '    private hasCredentials(): boolean {' >> /app/twitter-initializer.js && \
-    echo '      return (' >> /app/twitter-initializer.js && \
-    echo '        !!this.twitterCredentials.apiKey &&' >> /app/twitter-initializer.js && \
-    echo '        !!this.twitterCredentials.apiSecret &&' >> /app/twitter-initializer.js && \
-    echo '        !!this.twitterCredentials.accessToken &&' >> /app/twitter-initializer.js && \
-    echo '        !!this.twitterCredentials.accessSecret' >> /app/twitter-initializer.js && \
-    echo '      );' >> /app/twitter-initializer.js && \
-    echo '    }' >> /app/twitter-initializer.js && \
-    echo '    ' >> /app/twitter-initializer.js && \
-    echo '    private setupAutopost() {' >> /app/twitter-initializer.js && \
-    echo '      const intervalMinutes = parseInt(process.env.AUTOPOST_INTERVAL || "60", 10);' >> /app/twitter-initializer.js && \
-    echo '      console.log(`Setting up autopost every ${intervalMinutes} minutes`);' >> /app/twitter-initializer.js && \
-    echo '      ' >> /app/twitter-initializer.js && \
-    echo '      // Initially post right away' >> /app/twitter-initializer.js && \
-    echo '      setTimeout(() => this.createAndPostTweet(), 5000);' >> /app/twitter-initializer.js && \
-    echo '      ' >> /app/twitter-initializer.js && \
-    echo '      // Set up interval for regular posting' >> /app/twitter-initializer.js && \
-    echo '      this.autopostInterval = setInterval(' >> /app/twitter-initializer.js && \
-    echo '        () => this.createAndPostTweet(),' >> /app/twitter-initializer.js && \
-    echo '        intervalMinutes * 60 * 1000' >> /app/twitter-initializer.js && \
-    echo '      );' >> /app/twitter-initializer.js && \
-    echo '    }' >> /app/twitter-initializer.js && \
-    echo '    ' >> /app/twitter-initializer.js && \
-    echo '    private async createAndPostTweet() {' >> /app/twitter-initializer.js && \
-    echo '      try {' >> /app/twitter-initializer.js && \
-    echo '        console.log("Generating tweet for", this.character.name);' >> /app/twitter-initializer.js && \
-    echo '        ' >> /app/twitter-initializer.js && \
-    echo '        // Generate a tweet from character examples or random topic' >> /app/twitter-initializer.js && \
-    echo '        const tweetText = this.generateTweetContent();' >> /app/twitter-initializer.js && \
-    echo '        ' >> /app/twitter-initializer.js && \
-    echo '        // Post to Twitter' >> /app/twitter-initializer.js && \
-    echo '        await this.postToTwitter(tweetText);' >> /app/twitter-initializer.js && \
-    echo '      } catch (error) {' >> /app/twitter-initializer.js && \
-    echo '        console.error("Error creating or posting tweet:", error);' >> /app/twitter-initializer.js && \
-    echo '      }' >> /app/twitter-initializer.js && \
-    echo '    }' >> /app/twitter-initializer.js && \
-    echo '    ' >> /app/twitter-initializer.js && \
-    echo '    private generateTweetContent(): string {' >> /app/twitter-initializer.js && \
-    echo '      // Use character\'s postExamples if available, otherwise create something simple' >> /app/twitter-initializer.js && \
-    echo '      if (this.character.postExamples && this.character.postExamples.length > 0) {' >> /app/twitter-initializer.js && \
-    echo '        const randomIndex = Math.floor(Math.random() * this.character.postExamples.length);' >> /app/twitter-initializer.js && \
-    echo '        return this.character.postExamples[randomIndex];' >> /app/twitter-initializer.js && \
-    echo '      }' >> /app/twitter-initializer.js && \
-    echo '      ' >> /app/twitter-initializer.js && \
-    echo '      // Create a simple tweet if no examples' >> /app/twitter-initializer.js && \
-    echo '      const topics = this.character.topics || ["AI", "technology", "future"];' >> /app/twitter-initializer.js && \
-    echo '      const randomTopic = topics[Math.floor(Math.random() * topics.length)];' >> /app/twitter-initializer.js && \
-    echo '      return `Thinking about ${randomTopic} today. What\'s on your mind? #${randomTopic.replace(" ", "")}`;' >> /app/twitter-initializer.js && \
-    echo '    }' >> /app/twitter-initializer.js && \
-    echo '    ' >> /app/twitter-initializer.js && \
-    echo '    private async postToTwitter(text: string) {' >> /app/twitter-initializer.js && \
-    echo '      console.log("POSTING TWEET:", text);' >> /app/twitter-initializer.js && \
-    echo '      console.log("Using credentials:", {' >> /app/twitter-initializer.js && \
-    echo '        apiKey: this.twitterCredentials.apiKey ? "SET" : "MISSING",' >> /app/twitter-initializer.js && \
-    echo '        apiSecret: this.twitterCredentials.apiSecret ? "SET" : "MISSING",' >> /app/twitter-initializer.js && \
-    echo '        accessToken: this.twitterCredentials.accessToken ? "SET" : "MISSING",' >> /app/twitter-initializer.js && \
-    echo '        accessSecret: this.twitterCredentials.accessSecret ? "SET" : "MISSING"' >> /app/twitter-initializer.js && \
-    echo '      });' >> /app/twitter-initializer.js && \
-    echo '      ' >> /app/twitter-initializer.js && \
-    echo '      // In a real implementation, this would use the Twitter API' >> /app/twitter-initializer.js && \
-    echo '      // For this minimal implementation, we just log the tweet' >> /app/twitter-initializer.js && \
-    echo '      console.log("Tweet posted successfully (simulated)!");' >> /app/twitter-initializer.js && \
-    echo '      ' >> /app/twitter-initializer.js && \
-    echo '      // Try to use our own implementation to actually post to Twitter' >> /app/twitter-initializer.js && \
-    echo '      try {' >> /app/twitter-initializer.js && \
-    echo '        await this.actuallyPostToTwitter(text);' >> /app/twitter-initializer.js && \
-    echo '      } catch (error) {' >> /app/twitter-initializer.js && \
-    echo '        console.error("Error posting to Twitter API:", error);' >> /app/twitter-initializer.js && \
-    echo '      }' >> /app/twitter-initializer.js && \
-    echo '    }' >> /app/twitter-initializer.js && \
-    echo '    ' >> /app/twitter-initializer.js && \
-    echo '    private async actuallyPostToTwitter(text: string) {' >> /app/twitter-initializer.js && \
-    echo '      console.log("Attempting to post to Twitter API...");' >> /app/twitter-initializer.js && \
-    echo '      ' >> /app/twitter-initializer.js && \
-    echo '      try {' >> /app/twitter-initializer.js && \
-    echo '        // This would be implemented with the Twitter API client' >> /app/twitter-initializer.js && \
-    echo '        console.log("Tweet would be posted to Twitter if API client was implemented");' >> /app/twitter-initializer.js && \
-    echo '      } catch (error) {' >> /app/twitter-initializer.js && \
-    echo '        console.error("Twitter API error:", error);' >> /app/twitter-initializer.js && \
-    echo '        throw error;  // Re-throw to be handled by caller' >> /app/twitter-initializer.js && \
-    echo '      }' >> /app/twitter-initializer.js && \
-    echo '    }' >> /app/twitter-initializer.js && \
-    echo '  }' >> /app/twitter-initializer.js && \
-    echo '  `;' >> /app/twitter-initializer.js && \
-    echo '  fs.writeFileSync(clientPath, clientContent);' >> /app/twitter-initializer.js && \
-    echo '  ' >> /app/twitter-initializer.js && \
-    echo '  console.log("Twitter client files created successfully");' >> /app/twitter-initializer.js && \
-    echo '}' >> /app/twitter-initializer.js && \
-    echo '' >> /app/twitter-initializer.js && \
     echo '// Check if the Twitter client is available' >> /app/twitter-initializer.js && \
     echo 'if (fs.existsSync(twitterDir)) {' >> /app/twitter-initializer.js && \
     echo '  console.log("Found Twitter client directory at:", twitterDir);' >> /app/twitter-initializer.js && \
@@ -426,7 +282,33 @@ RUN echo '// Direct Twitter client initializer' > /app/twitter-initializer.js &&
     echo '  console.log("Files in Twitter client directory:", files);' >> /app/twitter-initializer.js && \
     echo '} else {' >> /app/twitter-initializer.js && \
     echo '  console.log("Twitter client directory not found at:", twitterDir);' >> /app/twitter-initializer.js && \
-    echo '}' >> /app/twitter-initializer.js
+    echo '}' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo '// Direct activation function' >> /app/twitter-initializer.js && \
+    echo 'function activateTwitterClient() {' >> /app/twitter-initializer.js && \
+    echo '  console.log("Directly activating Twitter client...");' >> /app/twitter-initializer.js && \
+    echo '  // Try to execute a direct pnpm client command to force Twitter client initialization' >> /app/twitter-initializer.js && \
+    echo '  try {' >> /app/twitter-initializer.js && \
+    echo '    console.log("Running direct Twitter client initialization command...");' >> /app/twitter-initializer.js && \
+    echo '    const cmd = "cd /app/eliza && pnpm --filter @elizaos/agent start:client twitter --autopost --interval=60";' >> /app/twitter-initializer.js && \
+    echo '    exec(cmd, { env: { ...process.env, ...twitterEnv } }, (error, stdout, stderr) => {' >> /app/twitter-initializer.js && \
+    echo '      if (error) {' >> /app/twitter-initializer.js && \
+    echo '        console.error("Twitter client initialization failed:", error);' >> /app/twitter-initializer.js && \
+    echo '        console.error(stderr);' >> /app/twitter-initializer.js && \
+    echo '      } else {' >> /app/twitter-initializer.js && \
+    echo '        console.log("Twitter client initialization output:", stdout);' >> /app/twitter-initializer.js && \
+    echo '      }' >> /app/twitter-initializer.js && \
+    echo '    });' >> /app/twitter-initializer.js && \
+    echo '  } catch (error) {' >> /app/twitter-initializer.js && \
+    echo '    console.error("Error in Twitter client direct activation:", error);' >> /app/twitter-initializer.js && \
+    echo '  }' >> /app/twitter-initializer.js && \
+    echo '}' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo '// Call the activation function' >> /app/twitter-initializer.js && \
+    echo 'activateTwitterClient();' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo 'module.exports = { activate: activateTwitterClient };' >> /app/twitter-initializer.js && \
+    chmod +x /app/twitter-initializer.js
 
 # Final image
 FROM node:20-slim
