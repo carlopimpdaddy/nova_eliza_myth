@@ -100,15 +100,33 @@ const args = [
 
 console.log('Starting ElizaOS with arguments:', args.join(' '));
 
-// Spawn node process with proper configuration
+// Explicitly set Twitter environment variables
+const twitterEnv = {
+  ...process.env,
+  NODE_OPTIONS: '--no-warnings',
+  TS_NODE_PROJECT: './tsconfig.json',
+  TWITTER_API_KEY: process.env.TWITTER_API_KEY || '',
+  TWITTER_API_SECRET: process.env.TWITTER_API_SECRET || '',  
+  TWITTER_ACCESS_TOKEN: process.env.TWITTER_ACCESS_TOKEN || '',
+  TWITTER_ACCESS_SECRET: process.env.TWITTER_ACCESS_SECRET || '',
+  TWITTER_ENABLED: 'true',
+  TWITTER_AUTOPOST: 'true',
+  TWITTER_AUTOPOST_INTERVAL: process.env.TWITTER_AUTOPOST_INTERVAL || '60'
+};
+
+// Log Twitter credentials being passed to ElizaOS
+console.log('Twitter Integration Enabled with:');
+console.log('- API Key:', twitterEnv.TWITTER_API_KEY ? '✓ Set' : '✗ Missing');
+console.log('- API Secret:', twitterEnv.TWITTER_API_SECRET ? '✓ Set' : '✗ Missing');
+console.log('- Access Token:', twitterEnv.TWITTER_ACCESS_TOKEN ? '✓ Set' : '✗ Missing');
+console.log('- Access Secret:', twitterEnv.TWITTER_ACCESS_SECRET ? '✓ Set' : '✗ Missing');
+console.log('- Autopost Interval:', twitterEnv.TWITTER_AUTOPOST_INTERVAL);
+
+// Spawn node process with proper configuration and Twitter variables
 const proc = spawn('node', args, {
   cwd: __dirname,
   stdio: 'inherit',
-  env: {
-    ...process.env,
-    NODE_OPTIONS: '--no-warnings',
-    TS_NODE_PROJECT: './tsconfig.json'
-  }
+  env: twitterEnv
 });
 
 proc.on('error', (err) => {
