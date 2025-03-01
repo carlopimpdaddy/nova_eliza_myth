@@ -13,7 +13,9 @@ export const defaultCharacter: Character = {
     },
     username: "mythosbuild",
     screenName: "Nova 11 Wing",
-    plugins: [],
+    plugins: [
+        "twitter"
+    ],
     clients: [
         "twitter"
     ],
@@ -868,4 +870,10 @@ export const defaultCharacter: Character = {
         "provocative"
     ],
     extends: [],
+    pluginOptions: {
+        twitter: {
+            autopost: true,
+            interval: 60
+        }
+    },
 };
