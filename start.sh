@@ -74,95 +74,51 @@ cat > /app/eliza/agent/tsconfig.json << EOF
 }
 EOF
 
-# Create a simple wrapper script
-log "Creating starter script for ElizaOS..."
-cat > /app/eliza/agent/start-eliza.js << EOF
-// ElizaOS starter script
-// This will execute the TypeScript file with proper Node.js module settings
-import { spawn } from 'child_process';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-// Get current directory in ESM
-const __dirname = dirname(fileURLToPath(import.meta.url));
-console.log('Starting ElizaOS from directory:', __dirname);
-
-// Configure process arguments
-const args = [
-  '--require=ts-node/register',
-  '--loader=ts-node/esm',
-  'src/index.ts',
-  '--isRoot',
-  '--plugin', 'twitter',
-  '--autopost',
-  '--debug'
-];
-
-console.log('Starting ElizaOS with arguments:', args.join(' '));
-
-// Explicitly set Twitter environment variables
-const twitterEnv = {
-  ...process.env,
-  NODE_OPTIONS: '--no-warnings',
-  TS_NODE_PROJECT: './tsconfig.json',
-  TWITTER_API_KEY: process.env.TWITTER_API_KEY || '',
-  TWITTER_API_SECRET: process.env.TWITTER_API_SECRET || '',  
-  TWITTER_ACCESS_TOKEN: process.env.TWITTER_ACCESS_TOKEN || '',
-  TWITTER_ACCESS_SECRET: process.env.TWITTER_ACCESS_SECRET || '',
-  TWITTER_ENABLED: 'true',
-  TWITTER_AUTOPOST: 'true',
-  TWITTER_AUTOPOST_INTERVAL: process.env.TWITTER_AUTOPOST_INTERVAL || '60'
-};
-
-// Log Twitter credentials being passed to ElizaOS
-console.log('Twitter Integration Enabled with:');
-console.log('- API Key:', twitterEnv.TWITTER_API_KEY ? '✓ Set' : '✗ Missing');
-console.log('- API Secret:', twitterEnv.TWITTER_API_SECRET ? '✓ Set' : '✗ Missing');
-console.log('- Access Token:', twitterEnv.TWITTER_ACCESS_TOKEN ? '✓ Set' : '✗ Missing');
-console.log('- Access Secret:', twitterEnv.TWITTER_ACCESS_SECRET ? '✓ Set' : '✗ Missing');
-console.log('- Autopost Interval:', twitterEnv.TWITTER_AUTOPOST_INTERVAL);
-
-// Spawn node process with proper configuration and Twitter variables
-const proc = spawn('node', args, {
-  cwd: __dirname,
-  stdio: 'inherit',
-  env: twitterEnv
-});
-
-proc.on('error', (err) => {
-  console.error('Failed to start ElizaOS:', err);
-  process.exit(1);
-});
-
-proc.on('exit', (code) => {
-  console.log('ElizaOS process exited with code:', code);
-  process.exit(code || 0);
-});
-EOF
-
-# Start ElizaOS using the wrapper script
-log "Starting ElizaOS with Twitter plugin..."
+log "Starting ElizaOS server and client components..."
 cd /app/eliza/agent
 log "Working directory: $(pwd)"
 log "Directory contents: $(ls -la)"
 
-# Start the wrapper script in the background
-log "Starting ElizaOS with Node.js wrapper script"
-node start-eliza.js &
-ELIZA_PID=$!
-log "ElizaOS started with PID $ELIZA_PID"
+# Start ElizaOS server (background)
+log "Starting ElizaOS server with Twitter plugin..."
+export NODE_OPTIONS="--no-warnings --experimental-specifier-resolution=node"
+export TWITTER_ENABLED=true
+export TWITTER_AUTOPOST=true
+export TWITTER_AUTOPOST_INTERVAL=${TWITTER_AUTOPOST_INTERVAL:-60}
 
-# Keep container alive
+# Run the server component (pnpm start) in the background
+log "Running: pnpm start -- --isRoot --plugin twitter --autopost --debug"
+pnpm start -- --isRoot --plugin twitter --autopost --debug &
+SERVER_PID=$!
+log "ElizaOS server started with PID $SERVER_PID"
+
+# Give server a moment to initialize before starting client
+sleep 5
+
+# Start the client component (pnpm start:client) in the background
+log "Running: pnpm start:client"
+pnpm start:client &
+CLIENT_PID=$!
+log "ElizaOS client started with PID $CLIENT_PID"
+
+# Keep container alive and monitor both processes
 log "ElizaOS services running. Container will stay alive."
 while true; do
-    # Check if ElizaOS is still running
-    if ! kill -0 $ELIZA_PID 2>/dev/null; then
-        log "ElizaOS process died. Restarting..."
-        cd /app/eliza/agent
-        log "Restarting ElizaOS with Node.js wrapper script"
-        node start-eliza.js &
-        ELIZA_PID=$!
-        log "ElizaOS restarted with PID $ELIZA_PID"
+    # Check if server is still running
+    if ! kill -0 $SERVER_PID 2>/dev/null; then
+        log "ElizaOS server died. Restarting..."
+        pnpm start -- --isRoot --plugin twitter --autopost --debug &
+        SERVER_PID=$!
+        log "ElizaOS server restarted with PID $SERVER_PID"
     fi
+    
+    # Check if client is still running
+    if ! kill -0 $CLIENT_PID 2>/dev/null; then
+        log "ElizaOS client died. Restarting..."
+        pnpm start:client &
+        CLIENT_PID=$!
+        log "ElizaOS client restarted with PID $CLIENT_PID"
+    fi
+    
     sleep 30
 done 
