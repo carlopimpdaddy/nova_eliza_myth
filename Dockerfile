@@ -64,9 +64,9 @@ RUN mkdir -p /app/eliza
 # Copy the application code to eliza directory
 COPY . /app/eliza/
 
-# Install dependencies for health server
+# Install dependencies for health server - using pnpm instead of npm to handle workspace references
 WORKDIR /app
-RUN npm install --production
+RUN pnpm install --prod
 
 # Build the ElizaOS application
 WORKDIR /app/eliza
