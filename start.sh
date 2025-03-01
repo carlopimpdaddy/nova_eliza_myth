@@ -48,9 +48,9 @@ EOF
 cp /app/.env /app/eliza/agent/.env
 log "Copied .env to agent directory"
 
-# Create a simple JS loader for TypeScript
+# Create a simple CommonJS loader for TypeScript (using .cjs extension)
 log "Creating a TypeScript loader..."
-cat > /app/eliza/agent/loader.js << EOF
+cat > /app/eliza/agent/loader.cjs << EOF
 // Simple CommonJS loader for TypeScript
 require('ts-node').register({
   transpileOnly: true,
@@ -62,6 +62,16 @@ require('ts-node').register({
   }
 });
 
+// Set command line arguments
+process.argv = [
+  process.argv[0],
+  process.argv[1],
+  '--isRoot',
+  '--plugin', 'twitter',
+  '--autopost',
+  '--debug'
+];
+
 // Load the TypeScript file
 try {
   require('./src/index.ts');
@@ -72,11 +82,11 @@ try {
 }
 EOF
 
-# Start ElizaOS using the JS loader
+# Start ElizaOS using the JS loader with CJS extension
 log "Starting ElizaOS with Twitter plugin via CommonJS loader..."
 cd /app/eliza/agent
 export NODE_OPTIONS="--no-warnings"
-node loader.js --isRoot --plugin twitter --autopost --debug &
+node loader.cjs &
 ELIZA_PID=$!
 log "ElizaOS started with PID $ELIZA_PID"
 
@@ -87,7 +97,7 @@ while true; do
     if ! kill -0 $ELIZA_PID 2>/dev/null; then
         log "ElizaOS process died. Restarting..."
         cd /app/eliza/agent
-        node loader.js --isRoot --plugin twitter --autopost --debug &
+        node loader.cjs &
         ELIZA_PID=$!
         log "ElizaOS restarted with PID $ELIZA_PID"
     fi
