@@ -77,21 +77,31 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
 # Expose necessary ports
-EXPOSE 3000 5173 8080
+EXPOSE 3000 5173
 
 # Create health check file
 RUN mkdir -p /app/railway
 RUN printf 'const http = require("http");\n\
     http.createServer(function (req, res) {\n\
-    console.log("Health check request received:", req.url);\n\
+    console.log(new Date().toISOString(), "Health check request received:", req.method, req.url);\n\
+    if (req.url === "/health" || req.url === "/") {\n\
+    res.writeHead(200, {"Content-Type": "application/json"});\n\
+    res.end(JSON.stringify({ status: "ok" }));\n\
+    } else {\n\
     res.writeHead(200, {"Content-Type": "text/plain"});\n\
-    res.write("OK");\n\
-    res.end();\n\
-    }).listen(8080, "0.0.0.0");\n\
-    console.log("Health check server running at http://0.0.0.0:8080/");' > /app/railway/health.js
+    res.end("OK");\n\
+    }\n\
+    }).listen(3000, "0.0.0.0");\n\
+    console.log("Health check server running at http://0.0.0.0:3000/health");' > /app/railway/health.js
 
 # Create a startup script
-RUN printf '#!/bin/sh\nnode /app/railway/health.js &\necho "Health check server started"\necho "Container is running"\nwhile true; do sleep 10; done' > /app/start.sh && chmod +x /app/start.sh
+RUN printf '#!/bin/sh\necho "Starting health check server..."\nnode /app/railway/health.js\n' > /app/start.sh && chmod +x /app/start.sh
 
 # Command to run the container
 CMD ["/app/start.sh"]
+
+HEALTHCHECK --interval=30s \
+    --timeout=5s \
+    --retries=3 \
+    --start-period=60s \
+    CMD curl --fail http://localhost:8080 || exit 1
