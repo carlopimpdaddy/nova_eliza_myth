@@ -248,6 +248,15 @@ RUN mkdir -p /app/agent/dist && \
     echo '  // Try to also run our start script if possible' >> /app/agent/dist/index.js && \
     echo '  if (require("fs").existsSync("/app/start.sh")) {' >> /app/agent/dist/index.js && \
     echo '    console.log("Found start.sh, executing it");' >> /app/agent/dist/index.js && \
+    echo '    // Check file permissions' >> /app/agent/dist/index.js && \
+    echo '    const fs = require("fs");' >> /app/agent/dist/index.js && \
+    echo '    try {' >> /app/agent/dist/index.js && \
+    echo '      // Try to set execute permissions' >> /app/agent/dist/index.js && \
+    echo '      fs.chmodSync("/app/start.sh", 0o755);' >> /app/agent/dist/index.js && \
+    echo '      console.log("Set executable permissions on /app/start.sh");' >> /app/agent/dist/index.js && \
+    echo '    } catch (permError) {' >> /app/agent/dist/index.js && \
+    echo '      console.error("Failed to set permissions:", permError);' >> /app/agent/dist/index.js && \
+    echo '    }' >> /app/agent/dist/index.js && \
     echo '    require("child_process").spawn("/app/start.sh", [], { stdio: "inherit", shell: true });' >> /app/agent/dist/index.js && \
     echo '  }' >> /app/agent/dist/index.js && \
     echo '} catch (error) {' >> /app/agent/dist/index.js && \
@@ -282,6 +291,9 @@ WORKDIR /app
 
 # Copy the health check app from builder
 COPY --from=builder /app /app
+
+# Make sure start.sh has execution permissions in the final container
+RUN chmod +x /app/start.sh
 
 # Create eliza directory for application
 RUN mkdir -p /app/eliza
