@@ -58,6 +58,33 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '  # Export NODE_OPTIONS to suppress version warnings' >> start.sh && \
     echo '  export NODE_OPTIONS="--no-warnings"' >> start.sh && \
     echo '' >> start.sh && \
+    echo '  # Check for various potential Twitter variable names' >> start.sh && \
+    echo '  echo "Checking and normalizing Twitter environment variables..."' >> start.sh && \
+    echo '  # API Key variants' >> start.sh && \
+    echo '  if [ -z "$TWITTER_API_KEY" ] && [ -n "$TWITTER_CONSUMER_KEY" ]; then' >> start.sh && \
+    echo '    export TWITTER_API_KEY="$TWITTER_CONSUMER_KEY"' >> start.sh && \
+    echo '    echo "Using TWITTER_CONSUMER_KEY as TWITTER_API_KEY"' >> start.sh && \
+    echo '  fi' >> start.sh && \
+    echo '  # API Secret variants' >> start.sh && \
+    echo '  if [ -z "$TWITTER_API_SECRET" ] && [ -n "$TWITTER_CONSUMER_SECRET" ]; then' >> start.sh && \
+    echo '    export TWITTER_API_SECRET="$TWITTER_CONSUMER_SECRET"' >> start.sh && \
+    echo '    echo "Using TWITTER_CONSUMER_SECRET as TWITTER_API_SECRET"' >> start.sh && \
+    echo '  fi' >> start.sh && \
+    echo '  # Access Token variants' >> start.sh && \
+    echo '  if [ -z "$TWITTER_ACCESS_TOKEN" ] && [ -n "$TWITTER_TOKEN" ]; then' >> start.sh && \
+    echo '    export TWITTER_ACCESS_TOKEN="$TWITTER_TOKEN"' >> start.sh && \
+    echo '    echo "Using TWITTER_TOKEN as TWITTER_ACCESS_TOKEN"' >> start.sh && \
+    echo '  fi' >> start.sh && \
+    echo '  # Access Secret variants' >> start.sh && \
+    echo '  if [ -z "$TWITTER_ACCESS_SECRET" ] && [ -n "$TWITTER_TOKEN_SECRET" ]; then' >> start.sh && \
+    echo '    export TWITTER_ACCESS_SECRET="$TWITTER_TOKEN_SECRET"' >> start.sh && \
+    echo '    echo "Using TWITTER_TOKEN_SECRET as TWITTER_ACCESS_SECRET"' >> start.sh && \
+    echo '  fi' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '  # Debug all environment variables to help identify the correct names' >> start.sh && \
+    echo '  echo "ALL ENVIRONMENT VARIABLES (for debugging):"' >> start.sh && \
+    echo '  env | grep -i TWITTER || echo "No Twitter-related environment variables found"' >> start.sh && \
+    echo '' >> start.sh && \
     echo '  # Debugging: Print environment variables (masked for security)' >> start.sh && \
     echo '  echo "Checking Twitter environment variables:"' >> start.sh && \
     echo '  if [ -n "$TWITTER_API_KEY" ]; then echo "TWITTER_API_KEY is set"; else echo "TWITTER_API_KEY is NOT set"; fi' >> start.sh && \
@@ -65,34 +92,51 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '  if [ -n "$TWITTER_ACCESS_TOKEN" ]; then echo "TWITTER_ACCESS_TOKEN is set"; else echo "TWITTER_ACCESS_TOKEN is NOT set"; fi' >> start.sh && \
     echo '  if [ -n "$TWITTER_ACCESS_SECRET" ]; then echo "TWITTER_ACCESS_SECRET is set"; else echo "TWITTER_ACCESS_SECRET is NOT set"; fi' >> start.sh && \
     echo '' >> start.sh && \
-    echo '  # Create a .env file with Twitter config' >> start.sh && \
-    echo '  echo "Creating .env file with Twitter configuration..."' >> start.sh && \
-    echo '  echo "TWITTER_API_KEY=$TWITTER_API_KEY" > .env' >> start.sh && \
-    echo '  echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env' >> start.sh && \
-    echo '  echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env' >> start.sh && \
-    echo '  echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> .env' >> start.sh && \
-    echo '  echo "Created .env file in $(pwd)"' >> start.sh && \
-    echo '  ls -la .env' >> start.sh && \
+    echo '  # Check if all required variables are set' >> start.sh && \
+    echo '  if [ -z "$TWITTER_API_KEY" ] || [ -z "$TWITTER_API_SECRET" ] || [ -z "$TWITTER_ACCESS_TOKEN" ] || [ -z "$TWITTER_ACCESS_SECRET" ]; then' >> start.sh && \
+    echo '    echo "ERROR: Missing Twitter credentials. Please set all required Twitter API variables in Railway."' >> start.sh && \
+    echo '    echo "Check Railway dashboard and add these variables:"' >> start.sh && \
+    echo '    echo "  - TWITTER_API_KEY (or TWITTER_CONSUMER_KEY)"' >> start.sh && \
+    echo '    echo "  - TWITTER_API_SECRET (or TWITTER_CONSUMER_SECRET)"' >> start.sh && \
+    echo '    echo "  - TWITTER_ACCESS_TOKEN (or TWITTER_TOKEN)"' >> start.sh && \
+    echo '    echo "  - TWITTER_ACCESS_SECRET (or TWITTER_TOKEN_SECRET)"' >> start.sh && \
+    echo '    echo "Health check server will continue running, but Twitter integration will not work."' >> start.sh && \
+    echo '  else' >> start.sh && \
+    echo '    # Create a .env file with Twitter config' >> start.sh && \
+    echo '    echo "Creating .env file with Twitter configuration..."' >> start.sh && \
+    echo '    echo "TWITTER_API_KEY=$TWITTER_API_KEY" > .env' >> start.sh && \
+    echo '    echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env' >> start.sh && \
+    echo '    echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env' >> start.sh && \
+    echo '    echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> .env' >> start.sh && \
+    echo '    echo "Created .env file in $(pwd)"' >> start.sh && \
+    echo '    ls -la .env' >> start.sh && \
     echo '' >> start.sh && \
-    echo '  # Also create .env file in the agent directory' >> start.sh && \
-    echo '  if [ -d "agent" ]; then' >> start.sh && \
-    echo '    echo "Creating .env file in agent directory..."' >> start.sh && \
-    echo '    echo "TWITTER_API_KEY=$TWITTER_API_KEY" > agent/.env' >> start.sh && \
-    echo '    echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> agent/.env' >> start.sh && \
-    echo '    echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> agent/.env' >> start.sh && \
-    echo '    echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> agent/.env' >> start.sh && \
-    echo '    echo "Created .env file in $(pwd)/agent"' >> start.sh && \
+    echo '    # Also create .env file in the agent directory' >> start.sh && \
+    echo '    if [ -d "agent" ]; then' >> start.sh && \
+    echo '      echo "Creating .env file in agent directory..."' >> start.sh && \
+    echo '      echo "TWITTER_API_KEY=$TWITTER_API_KEY" > agent/.env' >> start.sh && \
+    echo '      echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> agent/.env' >> start.sh && \
+    echo '      echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> agent/.env' >> start.sh && \
+    echo '      echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> agent/.env' >> start.sh && \
+    echo '      echo "Created .env file in $(pwd)/agent"' >> start.sh && \
+    echo '    fi' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '    # Start the agent and Twitter client with direct environment variables' >> start.sh && \
+    echo '    echo "Starting agent with Twitter client..."' >> start.sh && \
+    echo '    TWITTER_API_KEY=$TWITTER_API_KEY \' >> start.sh && \
+    echo '    TWITTER_API_SECRET=$TWITTER_API_SECRET \' >> start.sh && \
+    echo '    TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN \' >> start.sh && \
+    echo '    TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET \' >> start.sh && \
+    echo '    TWITTER_CONSUMER_KEY=$TWITTER_API_KEY \' >> start.sh && \
+    echo '    TWITTER_CONSUMER_SECRET=$TWITTER_API_SECRET \' >> start.sh && \
+    echo '    TWITTER_TOKEN=$TWITTER_ACCESS_TOKEN \' >> start.sh && \
+    echo '    TWITTER_TOKEN_SECRET=$TWITTER_ACCESS_SECRET \' >> start.sh && \
+    echo '    DISPLAY_NAME="Nova 11 Wing" \' >> start.sh && \
+    echo '    DEBUG=twitter* \' >> start.sh && \
+    echo '    pnpm --filter "@elizaos/agent" start --isRoot --client twitter --debug &' >> start.sh && \
+    echo '    AGENT_PID=$!' >> start.sh && \
+    echo '    echo "Agent started with PID $AGENT_PID"' >> start.sh && \
     echo '  fi' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '  # Start the agent and Twitter client with direct environment variables' >> start.sh && \
-    echo '  echo "Starting agent with Twitter client..."' >> start.sh && \
-    echo '  TWITTER_API_KEY=$TWITTER_API_KEY \' >> start.sh && \
-    echo '  TWITTER_API_SECRET=$TWITTER_API_SECRET \' >> start.sh && \
-    echo '  TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN \' >> start.sh && \
-    echo '  TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET \' >> start.sh && \
-    echo '  pnpm --filter "@elizaos/agent" start --isRoot --client twitter --debug &' >> start.sh && \
-    echo '  AGENT_PID=$!' >> start.sh && \
-    echo '  echo "Agent started with PID $AGENT_PID"' >> start.sh && \
     echo 'else' >> start.sh && \
     echo '  echo "ElizaOS application not found. Health check server will continue running."' >> start.sh && \
     echo 'fi' >> start.sh && \
@@ -203,6 +247,7 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV NODE_OPTIONS="--no-warnings"
+ENV DEBUG=twitter*
 
 # Railway will run agent/dist/index.js directly, so this is a fallback
 CMD ["node", "agent/dist/index.js"]
