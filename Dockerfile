@@ -1,108 +1,79 @@
-# Use a newer Node.js version (closer to the required 23.3.0)
-FROM node:20-slim AS builder
+# Use a specific Node.js version for better reproducibility
+FROM node:23.3.0-slim AS builder
 
-# Install necessary build tools
-RUN apt-get update && \
+# Install pnpm globally and necessary build tools
+RUN npm install -g pnpm@9.15.4 && \
+    apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y \
-    curl \
     git \
     python3 \
     python3-pip \
-    node-gyp \
-    make \
-    g++ \
-    build-essential \
-    && apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    npm install -g pnpm@9.15.4
-
-# Create app directory for health check
-WORKDIR /app
-
-# Create required directory structure
-RUN mkdir -p /app/agent/dist
-
-# Final image
-FROM node:20-slim
-
-# Install minimal dependencies
-RUN apt-get update && \
-    apt-get install -y \
     curl \
-    git \
-    python3 \
-    python3-pip \
     node-gyp \
+    ffmpeg \
+    libtool-bin \
+    autoconf \
+    automake \
+    libopus-dev \
     make \
     g++ \
     build-essential \
-    && apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    npm install -g pnpm@9.15.4 ts-node typescript
+    libcairo2-dev \
+    libjpeg-dev \
+    libpango1.0-dev \
+    libgif-dev \
+    openssl \
+    libssl-dev libsecret-1-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set Python 3 as the default python
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 
-# Create app directory
+# Set the working directory
 WORKDIR /app
 
-# Create required directories
-RUN mkdir -p /app/agent/dist
+# Copy application code
+COPY . .
 
-# Copy health check specific files first
-COPY health-check-package.json /app/package.json
-COPY health-server.js /app/
-COPY index.js /app/agent/dist/
-COPY start.sh /app/
-COPY eliza-start.sh /app/
+# Install dependencies
+RUN pnpm install
 
-# Make sure scripts are executable
-RUN chmod +x /app/start.sh /app/eliza-start.sh
+# Build the project
+RUN pnpm run build && pnpm prune --prod
 
-# Install dependencies for health server using npm (not pnpm)
-RUN npm install --production
+# Final runtime image
+FROM node:23.3.0-slim
 
-# Create eliza directory for application
-RUN mkdir -p /app/eliza
+# Install runtime dependencies
+RUN npm install -g pnpm@9.15.4 && \
+    apt-get update && \
+    apt-get install -y \
+    git \
+    python3 \
+    ffmpeg && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy the application code to eliza directory
-COPY . /app/eliza/
-
-# Build the ElizaOS application
-WORKDIR /app/eliza
-RUN if [ -f "package.json" ]; then \
-    # Install required global packages for TypeScript
-    npm install -g ts-node typescript @types/node && \
-    # Install dependencies without frozen lockfile
-    pnpm install --no-frozen-lockfile && \
-    # Install Twitter plugin explicitly with workspace flag
-    pnpm add @elizaos/plugin-twitter --save -w && \
-    NODE_OPTIONS="--no-warnings" pnpm run build || echo "Build failed, but continuing"; \
-    fi
-
-# Pre-install ts-node in the agent directory for direct loading
-WORKDIR /app/eliza/agent
-RUN pnpm install ts-node typescript @types/node
-
-# Return to app directory
+# Set the working directory
 WORKDIR /app
 
-# Expose port for health check - Railway expects this port
-EXPOSE 8080
+# Copy built artifacts and production dependencies from the builder stage
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/.npmrc ./
+COPY --from=builder /app/turbo.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/agent ./agent
+COPY --from=builder /app/client ./client
+COPY --from=builder /app/lerna.json ./
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/characters ./characters
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=8080
-ENV NODE_OPTIONS="--no-warnings"
-ENV DEBUG=twitter*,@elizaos/plugin-twitter*,@elizaos:*
-ENV ENABLE_PLUGINS=twitter
-ENV PLUGINS=twitter
-ENV ENABLE_TWITTER=true
-ENV TWITTER_ENABLED=true
-ENV TWITTER_AUTOPOST=true
-ENV TWITTER_AUTOPOST_INTERVAL=60
-ENV DISPLAY_NAME="Nova 11 Wing"
-ENV LOG_LEVEL=debug
+# Expose necessary ports
+EXPOSE 3000 5173
 
-# Set the command to run the entry point script
-CMD ["node", "/app/agent/dist/index.js"]
+# Command to start the application
+CMD ["sh", "-c", "pnpm start & pnpm start:client"]
