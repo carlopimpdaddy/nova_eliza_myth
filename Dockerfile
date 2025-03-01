@@ -108,7 +108,33 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '' >> start.sh && \
     echo '    # Start the agent and Twitter client with all possible Twitter variable names' >> start.sh && \
     echo '    echo "Starting agent with Twitter client using mapped variables..."' >> start.sh && \
+    echo '    # Print Twitter credential check' >> start.sh && \
+    echo '    echo "TWITTER CREDENTIALS VERIFICATION:"' >> start.sh && \
+    echo '    echo "TWITTER_API_KEY: $(if [ -n \"$TWITTER_API_KEY\" ]; then echo \"SET\"; else echo \"MISSING\"; fi)"' >> start.sh && \
+    echo '    echo "TWITTER_API_SECRET: $(if [ -n \"$TWITTER_API_SECRET\" ]; then echo \"SET\"; else echo \"MISSING\"; fi)"' >> start.sh && \
+    echo '    echo "TWITTER_ACCESS_TOKEN: $(if [ -n \"$TWITTER_ACCESS_TOKEN\" ]; then echo \"SET\"; else echo \"MISSING\"; fi)"' >> start.sh && \
+    echo '    echo "TWITTER_ACCESS_SECRET: $(if [ -n \"$TWITTER_ACCESS_SECRET\" ]; then echo \"SET\"; else echo \"MISSING\"; fi)"' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '    # Add these settings to explicitly activate Twitter client' >> start.sh && \
+    echo '    export TWITTER_CLIENT=true' >> start.sh && \
+    echo '    export TWITTER_CLIENT_ENABLED=true' >> start.sh && \
+    echo '    export ENABLE_TWITTER=true' >> start.sh && \
+    echo '    export CLIENT_TYPES=twitter' >> start.sh && \
+    echo '    export DEBUG_TWITTER=true' >> start.sh && \
+    echo '    export DISPLAY_NAME="Nova 11 Wing"' >> start.sh && \
+    echo '    export AGENT_CLIENTS=twitter' >> start.sh && \
+    echo '    export AUTOPOST=true' >> start.sh && \
+    echo '    export AUTOPOST_INTERVAL=60' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '    # Start the agent with all Twitter environment variables and debug flags' >> start.sh && \
     echo '    DEBUG=twitter* \' >> start.sh && \
+    echo '    TWITTER_CLIENT=true \' >> start.sh && \
+    echo '    TWITTER_CLIENT_ENABLED=true \' >> start.sh && \
+    echo '    ENABLE_TWITTER=true \' >> start.sh && \
+    echo '    CLIENT_TYPES=twitter \' >> start.sh && \
+    echo '    AGENT_CLIENTS=twitter \' >> start.sh && \
+    echo '    AUTOPOST=true \' >> start.sh && \
+    echo '    AUTOPOST_INTERVAL=60 \' >> start.sh && \
     echo '    DISPLAY_NAME="Nova 11 Wing" \' >> start.sh && \
     echo '    NODE_OPTIONS="--no-warnings" \' >> start.sh && \
     echo '    pnpm --filter "@elizaos/agent" start --isRoot --client twitter --autopost --interval=60 --debug &' >> start.sh && \
@@ -130,9 +156,31 @@ RUN mkdir -p /app/agent/dist && \
     echo 'console.log("Agent starting up");' > /app/agent/dist/index.js && \
     echo 'const { spawn } = require("child_process");' >> /app/agent/dist/index.js && \
     echo '' >> /app/agent/dist/index.js && \
+    echo '// Set Twitter environment variables explicitly' >> /app/agent/dist/index.js && \
+    echo 'process.env.TWITTER_CLIENT = "true";' >> /app/agent/dist/index.js && \
+    echo 'process.env.TWITTER_CLIENT_ENABLED = "true";' >> /app/agent/dist/index.js && \
+    echo 'process.env.ENABLE_TWITTER = "true";' >> /app/agent/dist/index.js && \
+    echo 'process.env.CLIENT_TYPES = "twitter";' >> /app/agent/dist/index.js && \
+    echo 'process.env.AGENT_CLIENTS = "twitter";' >> /app/agent/dist/index.js && \
+    echo 'process.env.AUTOPOST = "true";' >> /app/agent/dist/index.js && \
+    echo 'process.env.AUTOPOST_INTERVAL = "60";' >> /app/agent/dist/index.js && \
+    echo 'console.log("Twitter environment variables set directly in index.js");' >> /app/agent/dist/index.js && \
+    echo '' >> /app/agent/dist/index.js && \
     echo 'try {' >> /app/agent/dist/index.js && \
-    echo '  console.log("Starting ElizaOS with health check...");' >> /app/agent/dist/index.js && \
-    echo '  const startProcess = spawn("/app/start.sh", [], { stdio: "inherit", shell: true });' >> /app/agent/dist/index.js && \
+    echo '  console.log("Starting ElizaOS with health check and Twitter client...");' >> /app/agent/dist/index.js && \
+    echo '  // Try to load helper first' >> /app/agent/dist/index.js && \
+    echo '  try {' >> /app/agent/dist/index.js && \
+    echo '    const twitterHelper = require("../../twitter-client.js");' >> /app/agent/dist/index.js && \
+    echo '    console.log("Twitter helper loaded, activating Twitter client...");' >> /app/agent/dist/index.js && \
+    echo '    twitterHelper.activateTwitter();' >> /app/agent/dist/index.js && \
+    echo '  } catch (twitterError) {' >> /app/agent/dist/index.js && \
+    echo '    console.log("Twitter helper not loaded, continuing:", twitterError.message);' >> /app/agent/dist/index.js && \
+    echo '  }' >> /app/agent/dist/index.js && \
+    echo '' >> /app/agent/dist/index.js && \
+    echo '  // Start the main process' >> /app/agent/dist/index.js && \
+    echo '  const startArgs = ["--isRoot", "--client", "twitter", "--autopost", "--interval=60", "--debug"];' >> /app/agent/dist/index.js && \
+    echo '  console.log("Launching ElizaOS with args:", startArgs.join(" "));' >> /app/agent/dist/index.js && \
+    echo '  const startProcess = spawn("/app/start.sh", [], { stdio: "inherit", shell: true, env: { ...process.env, TWITTER_CLIENT: "true", AGENT_CLIENTS: "twitter" } });' >> /app/agent/dist/index.js && \
     echo '  startProcess.on("error", (err) => {' >> /app/agent/dist/index.js && \
     echo '    console.error("Failed to start application:", err);' >> /app/agent/dist/index.js && \
     echo '    // Start health check directly if shell script fails' >> /app/agent/dist/index.js && \
@@ -144,7 +192,34 @@ RUN mkdir -p /app/agent/dist && \
     echo '  require("../../health-server");' >> /app/agent/dist/index.js && \
     echo '}' >> /app/agent/dist/index.js && \
     echo '' >> /app/agent/dist/index.js && \
-    echo 'module.exports = { start: () => console.log("Agent started") };' >> /app/agent/dist/index.js
+    echo 'module.exports = { start: () => console.log("Agent started with Twitter client") };' >> /app/agent/dist/index.js
+
+# Create helper script to explicitly activate Twitter client
+RUN echo '// Helper script to explicitly activate Twitter client' > /app/twitter-client.js && \
+    echo 'console.log("Twitter Client Helper Starting...");' >> /app/twitter-client.js && \
+    echo 'process.env.TWITTER_CLIENT = "true";' >> /app/twitter-client.js && \
+    echo 'process.env.TWITTER_CLIENT_ENABLED = "true";' >> /app/twitter-client.js && \
+    echo 'process.env.ENABLE_TWITTER = "true";' >> /app/twitter-client.js && \
+    echo 'process.env.CLIENT_TYPES = "twitter";' >> /app/twitter-client.js && \
+    echo 'process.env.AGENT_CLIENTS = "twitter";' >> /app/twitter-client.js && \
+    echo 'process.env.AUTOPOST = "true";' >> /app/twitter-client.js && \
+    echo 'process.env.AUTOPOST_INTERVAL = "60";' >> /app/twitter-client.js && \
+    echo 'console.log("Twitter environment variables set in helper");' >> /app/twitter-client.js && \
+    echo '' >> /app/twitter-client.js && \
+    echo '// Check if Twitter credentials are available' >> /app/twitter-client.js && \
+    echo 'console.log("Checking Twitter credentials:");' >> /app/twitter-client.js && \
+    echo 'console.log(`TWITTER_API_KEY: ${process.env.TWITTER_API_KEY ? "SET" : "MISSING"}`);' >> /app/twitter-client.js && \
+    echo 'console.log(`TWITTER_API_SECRET: ${process.env.TWITTER_API_SECRET ? "SET" : "MISSING"}`);' >> /app/twitter-client.js && \
+    echo 'console.log(`TWITTER_ACCESS_TOKEN: ${process.env.TWITTER_ACCESS_TOKEN ? "SET" : "MISSING"}`);' >> /app/twitter-client.js && \
+    echo 'console.log(`TWITTER_ACCESS_SECRET: ${process.env.TWITTER_ACCESS_SECRET ? "SET" : "MISSING"}`);' >> /app/twitter-client.js && \
+    echo '' >> /app/twitter-client.js && \
+    echo '// Export helper function' >> /app/twitter-client.js && \
+    echo 'module.exports = {' >> /app/twitter-client.js && \
+    echo '  activateTwitter: () => {' >> /app/twitter-client.js && \
+    echo '    console.log("Twitter client activation requested");' >> /app/twitter-client.js && \
+    echo '    return true;' >> /app/twitter-client.js && \
+    echo '  }' >> /app/twitter-client.js && \
+    echo '};' >> /app/twitter-client.js
 
 # Final image
 FROM node:20-slim
@@ -230,6 +305,13 @@ ENV TWITTER_CLIENT=true
 ENV AGENT_CLIENTS=twitter
 ENV AUTOPOST=true
 ENV AUTOPOST_INTERVAL=60
+
+# Add Twitter client-specific environment variables
+ENV TWITTER_CLIENT_ENABLED=true
+ENV ENABLE_TWITTER=true
+ENV CLIENT_TYPES=twitter
+ENV DEBUG_TWITTER=true
+ENV DISPLAY_NAME="Nova 11 Wing"
 
 # Modified CMD to explicitly include Twitter client parameters
 CMD ["sh", "-c", "NODE_OPTIONS=\"--no-warnings\" node agent/dist/index.js --client twitter --autopost --interval=60 --debug"]
