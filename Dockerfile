@@ -47,6 +47,23 @@ RUN echo 'const express = require("express");' > health-server.js && \
     echo '  console.log(`Health check server running on port ${port} at ${new Date().toISOString()}`);' >> health-server.js && \
     echo '});' >> health-server.js
 
+# Create defaultCharacter.ts patch to enable Twitter for the default character
+RUN mkdir -p /app/patches && \
+    echo '// Patch to enable Twitter for default character' > /app/patches/defaultCharacter.ts.patch && \
+    echo 'export const defaultCharacter = {' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '  name: "Nova 11 Wing",' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '  modelProvider: "grok",' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '  plugins: ["twitter"],' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '  pluginOptions: {' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '    twitter: {' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '      autopost: true,' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '      interval: 60' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '    }' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '  },' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '  displayName: "Nova 11 Wing",' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '  // ... rest of character definition ...' >> /app/patches/defaultCharacter.ts.patch && \
+    echo '};' >> /app/patches/defaultCharacter.ts.patch
+
 # Create a simpler, more robust startup script with proper error handling
 RUN echo '#!/bin/sh' > start.sh && \
     echo 'set -e' >> start.sh && \
@@ -100,6 +117,31 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '        pnpm install || echo "Warning: pnpm install failed but continuing"' >> start.sh && \
     echo '      fi' >> start.sh && \
     echo '' >> start.sh && \
+    echo '      # Patch the default character configuration to enable Twitter' >> start.sh && \
+    echo '      echo "Patching defaultCharacter.ts to enable Twitter..."' >> start.sh && \
+    echo '      CHAR_FILES=$(find . -name "defaultCharacter.ts" -o -name "DefaultCharacter.ts")' >> start.sh && \
+    echo '      for FILE in $CHAR_FILES; do' >> start.sh && \
+    echo '        echo "Found character file: $FILE"' >> start.sh && \
+    echo '        # Backup the original file' >> start.sh && \
+    echo '        cp "$FILE" "${FILE}.backup"' >> start.sh && \
+    echo '        # Check if the file contains plugins array' >> start.sh && \
+    echo '        if grep -q "plugins" "$FILE"; then' >> start.sh && \
+    echo '          # Add twitter to plugins array if not already there' >> start.sh && \
+    echo '          sed -i "s/plugins: \\[/plugins: [\"twitter\", /g" "$FILE"' >> start.sh && \
+    echo '        else' >> start.sh && \
+    echo '          # Add plugins array if not present' >> start.sh && \
+    echo '          sed -i "s/modelProvider: \\"[^\"]*\\"/modelProvider: \\"grok\\", plugins: [\"twitter\"]/g" "$FILE"' >> start.sh && \
+    echo '        fi' >> start.sh && \
+    echo '        # Add pluginOptions if not present' >> start.sh && \
+    echo '        if ! grep -q "pluginOptions" "$FILE"; then' >> start.sh && \
+    echo '          sed -i "s/plugins: \\[[^]]*\\]/plugins: \\[\"twitter\"\\], pluginOptions: { twitter: { autopost: true, interval: 60 } }/g" "$FILE"' >> start.sh && \
+    echo '        else' >> start.sh && \
+    echo '          # Add twitter to pluginOptions if not already there' >> start.sh && \
+    echo '          sed -i "s/pluginOptions: {/pluginOptions: { twitter: { autopost: true, interval: 60 }, /g" "$FILE"' >> start.sh && \
+    echo '        fi' >> start.sh && \
+    echo '        echo "Patched $FILE for Twitter support"' >> start.sh && \
+    echo '      done' >> start.sh && \
+    echo '' >> start.sh && \
     echo '      # Create full .env file with all possible Twitter config variables' >> start.sh && \
     echo '      echo "Creating .env files with Twitter configuration..."' >> start.sh && \
     echo '      cat > .env << EOF' >> start.sh && \
@@ -114,10 +156,12 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo 'ENABLE_PLUGINS=twitter' >> start.sh && \
     echo 'PLUGINS=twitter' >> start.sh && \
     echo 'ENABLE_TWITTER=true' >> start.sh && \
+    echo 'TWITTER_ENABLED=true' >> start.sh && \
     echo 'TWITTER_AUTOPOST=true' >> start.sh && \
     echo 'TWITTER_AUTOPOST_INTERVAL=60' >> start.sh && \
     echo 'DISPLAY_NAME=Nova 11 Wing' >> start.sh && \
-    echo 'DEBUG=twitter*,@elizaos/plugin-twitter*' >> start.sh && \
+    echo 'DEBUG=twitter*,@elizaos/plugin-twitter*,@elizaos:*' >> start.sh && \
+    echo 'LOG_LEVEL=debug' >> start.sh && \
     echo 'EOF' >> start.sh && \
     echo '' >> start.sh && \
     echo '      # Copy .env to agent directory for direct access' >> start.sh && \
@@ -126,18 +170,31 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '        echo "Copied .env to agent directory"' >> start.sh && \
     echo '      fi' >> start.sh && \
     echo '' >> start.sh && \
+    echo '      # Check and fix package.json to include the Twitter plugin' >> start.sh && \
+    echo '      if [ -f "package.json" ]; then' >> start.sh && \
+    echo '        echo "Checking package.json for Twitter plugin..."' >> start.sh && \
+    echo '        if ! grep -q "@elizaos/plugin-twitter" "package.json"; then' >> start.sh && \
+    echo '          echo "Twitter plugin not found in package.json, installing..."' >> start.sh && \
+    echo '          pnpm add @elizaos/plugin-twitter || echo "Warning: Failed to install Twitter plugin package"' >> start.sh && \
+    echo '        else' >> start.sh && \
+    echo '          echo "Twitter plugin already in package.json"' >> start.sh && \
+    echo '        fi' >> start.sh && \
+    echo '      fi' >> start.sh && \
+    echo '' >> start.sh && \
     echo '      # Set Twitter environment variables directly for the process' >> start.sh && \
     echo '      export ENABLE_PLUGINS=twitter' >> start.sh && \
     echo '      export PLUGINS=twitter' >> start.sh && \
     echo '      export ENABLE_TWITTER=true' >> start.sh && \
+    echo '      export TWITTER_ENABLED=true' >> start.sh && \
     echo '      export TWITTER_AUTOPOST=true' >> start.sh && \
     echo '      export TWITTER_AUTOPOST_INTERVAL=60' >> start.sh && \
-    echo '      export DEBUG=twitter*,@elizaos/plugin-twitter*' >> start.sh && \
+    echo '      export DEBUG=twitter*,@elizaos/plugin-twitter*,@elizaos:*' >> start.sh && \
+    echo '      export LOG_LEVEL=debug' >> start.sh && \
     echo '      export DISPLAY_NAME="Nova 11 Wing"' >> start.sh && \
     echo '' >> start.sh && \
-    echo '      # Start the agent with Twitter plugin activated' >> start.sh && \
+    echo '      # Start the agent with Twitter plugin activated with extra debug flags' >> start.sh && \
     echo '      echo "Starting ElizaOS with Twitter plugin..."' >> start.sh && \
-    echo '      NODE_OPTIONS="--no-warnings" pnpm start --isRoot --plugin twitter --autopost &' >> start.sh && \
+    echo '      NODE_OPTIONS="--no-warnings" pnpm start --isRoot --plugin twitter --autopost --debug &' >> start.sh && \
     echo '      AGENT_PID=$!' >> start.sh && \
     echo '      echo "ElizaOS started with PID $AGENT_PID"' >> start.sh && \
     echo '    fi' >> start.sh && \
@@ -269,13 +326,15 @@ EXPOSE 8080
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV NODE_OPTIONS="--no-warnings"
-ENV DEBUG=twitter*,@elizaos/plugin-twitter*
+ENV DEBUG=twitter*,@elizaos/plugin-twitter*,@elizaos:*
 ENV ENABLE_PLUGINS=twitter
 ENV PLUGINS=twitter
 ENV ENABLE_TWITTER=true
+ENV TWITTER_ENABLED=true
 ENV TWITTER_AUTOPOST=true
 ENV TWITTER_AUTOPOST_INTERVAL=60
 ENV DISPLAY_NAME="Nova 11 Wing"
+ENV LOG_LEVEL=debug
 
 # Set the command to run the entry point script
 CMD ["node", "/app/agent/dist/index.js"]
