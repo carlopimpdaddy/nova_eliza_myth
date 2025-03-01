@@ -92,14 +92,13 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '      echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env' >> start.sh && \
     echo '      echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env' >> start.sh && \
     echo '      echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> .env' >> start.sh && \
-    echo '      echo "TWITTER_CLIENT=true" >> .env' >> start.sh && \
-    echo '      echo "TWITTER_CLIENT_ENABLED=true" >> .env' >> start.sh && \
+    echo '      echo "ENABLE_PLUGINS=twitter" >> .env' >> start.sh && \
     echo '      echo "ENABLE_TWITTER=true" >> .env' >> start.sh && \
-    echo '      echo "CLIENT_TYPES=twitter" >> .env' >> start.sh && \
-    echo '      echo "AGENT_CLIENTS=twitter" >> .env' >> start.sh && \
-    echo '      echo "AUTOPOST=true" >> .env' >> start.sh && \
-    echo '      echo "AUTOPOST_INTERVAL=60" >> .env' >> start.sh && \
-    echo '      echo "DEBUG=twitter*" >> .env' >> start.sh && \
+    echo '      echo "PLUGINS=twitter" >> .env' >> start.sh && \
+    echo '      echo "TWITTER_AUTOPOST=true" >> .env' >> start.sh && \
+    echo '      echo "TWITTER_AUTOPOST_INTERVAL=60" >> .env' >> start.sh && \
+    echo '      echo "DEBUG=twitter*,@elizaos/plugin-twitter*" >> .env' >> start.sh && \
+    echo '      echo "DISPLAY_NAME=Nova 11 Wing" >> .env' >> start.sh && \
     echo '' >> start.sh && \
     echo '      # Also create .env in agent directory if it exists' >> start.sh && \
     echo '      if [ -d "agent" ]; then' >> start.sh && \
@@ -107,91 +106,18 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '        echo "Copied .env to agent directory"' >> start.sh && \
     echo '      fi' >> start.sh && \
     echo '' >> start.sh && \
-    echo '      # Setup Twitter client' >> start.sh && \
-    echo '      if [ -d "agent" ]; then' >> start.sh && \
-    echo '        cd agent' >> start.sh && \
-    echo '        echo "Installing Twitter API package..."' >> start.sh && \
-    echo '        pnpm add twitter-api-v2 --ignore-scripts || echo "Failed to install twitter-api-v2"' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '        # Create Twitter client directory and files' >> start.sh && \
-    echo '        echo "Creating Twitter client files..."' >> start.sh && \
-    echo '        mkdir -p src/clients/twitter' >> start.sh && \
-    echo '        cat > src/clients/twitter/index.ts << "EOF"' >> start.sh && \
-    echo 'import { TwitterApi } from "twitter-api-v2";' >> start.sh && \
-    echo '' >> start.sh && \
-    echo 'let twitterClient: TwitterApi | null = null;' >> start.sh && \
-    echo '' >> start.sh && \
-    echo 'export function initialize(character: any, options: any = {}) {' >> start.sh && \
-    echo '  console.log("Twitter client initializing for", character.name);' >> start.sh && \
-    echo '  ' >> start.sh && \
-    echo '  // Initialize the Twitter client' >> start.sh && \
-    echo '  try {' >> start.sh && \
-    echo '    twitterClient = new TwitterApi({' >> start.sh && \
-    echo '      appKey: process.env.TWITTER_API_KEY || "",       ' >> start.sh && \
-    echo '      appSecret: process.env.TWITTER_API_SECRET || "",  ' >> start.sh && \
-    echo '      accessToken: process.env.TWITTER_ACCESS_TOKEN || "", ' >> start.sh && \
-    echo '      accessSecret: process.env.TWITTER_ACCESS_SECRET || "" ' >> start.sh && \
-    echo '    });' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '    console.log("Twitter client initialized successfully");' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '    // Set up autoposting if enabled' >> start.sh && \
-    echo '    if (options.autopost || process.env.AUTOPOST === "true") {' >> start.sh && \
-    echo '      const interval = options.interval || parseInt(process.env.AUTOPOST_INTERVAL || "60", 10);' >> start.sh && \
-    echo '      console.log(`Setting up autopost every ${interval} minutes`);' >> start.sh && \
-    echo '      setInterval(async () => {' >> start.sh && \
-    echo '        try {' >> start.sh && \
-    echo '          await postTweet();' >> start.sh && \
-    echo '        } catch (error) {' >> start.sh && \
-    echo '          console.error("Error in autopost:", error);' >> start.sh && \
-    echo '        }' >> start.sh && \
-    echo '      }, interval * 60 * 1000);' >> start.sh && \
-    echo '    }' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '    return { initialized: true };' >> start.sh && \
-    echo '  } catch (error) {' >> start.sh && \
-    echo '    console.error("Failed to initialize Twitter client:", error);' >> start.sh && \
-    echo '    return { initialized: false };' >> start.sh && \
-    echo '  }' >> start.sh && \
-    echo '}' >> start.sh && \
-    echo '' >> start.sh && \
-    echo 'async function postTweet() {' >> start.sh && \
-    echo '  if (!twitterClient) {' >> start.sh && \
-    echo '    console.error("Twitter client not initialized");' >> start.sh && \
-    echo '    return null;' >> start.sh && \
-    echo '  }' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '  try {' >> start.sh && \
-    echo '    const tweet = "Just another thought from an AI in the digital cosmos. #ElizaOS";' >> start.sh && \
-    echo '    console.log("Posting tweet:", tweet);' >> start.sh && \
-    echo '    const result = await twitterClient.v2.tweet(tweet);' >> start.sh && \
-    echo '    console.log("Tweet posted successfully:", result.data.id);' >> start.sh && \
-    echo '    return result.data.id;' >> start.sh && \
-    echo '  } catch (error) {' >> start.sh && \
-    echo '    console.error("Error posting tweet:", error);' >> start.sh && \
-    echo '    return null;' >> start.sh && \
-    echo '  }' >> start.sh && \
-    echo '}' >> start.sh && \
-    echo '' >> start.sh && \
-    echo 'export default { initialize, postTweet };' >> start.sh && \
-    echo 'EOF' >> start.sh && \
-    echo '        cd ..' >> start.sh && \
-    echo '      fi' >> start.sh && \
-    echo '' >> start.sh && \
     echo '      # Set Twitter environment variables' >> start.sh && \
-    echo '      export TWITTER_CLIENT=true' >> start.sh && \
-    echo '      export TWITTER_CLIENT_ENABLED=true' >> start.sh && \
+    echo '      export ENABLE_PLUGINS=twitter' >> start.sh && \
     echo '      export ENABLE_TWITTER=true' >> start.sh && \
-    echo '      export CLIENT_TYPES=twitter' >> start.sh && \
-    echo '      export AGENT_CLIENTS=twitter' >> start.sh && \
-    echo '      export AUTOPOST=true' >> start.sh && \
-    echo '      export AUTOPOST_INTERVAL=60' >> start.sh && \
+    echo '      export PLUGINS=twitter' >> start.sh && \
+    echo '      export TWITTER_AUTOPOST=true' >> start.sh && \
+    echo '      export TWITTER_AUTOPOST_INTERVAL=60' >> start.sh && \
+    echo '      export DEBUG=twitter*,@elizaos/plugin-twitter*' >> start.sh && \
     echo '      export DISPLAY_NAME="Nova 11 Wing"' >> start.sh && \
-    echo '      export DEBUG=twitter*' >> start.sh && \
     echo '' >> start.sh && \
     echo '      # Start the agent with Twitter enabled' >> start.sh && \
-    echo '      echo "Starting ElizaOS with Twitter client..."' >> start.sh && \
-    echo '      NODE_OPTIONS="--no-warnings" pnpm start --isRoot --client twitter --autopost --interval=60 &' >> start.sh && \
+    echo '      echo "Starting ElizaOS with Twitter plugin..."' >> start.sh && \
+    echo '      NODE_OPTIONS="--no-warnings" pnpm start --isRoot --plugin twitter --autopost &' >> start.sh && \
     echo '      AGENT_PID=$!' >> start.sh && \
     echo '      echo "ElizaOS started with PID $AGENT_PID"' >> start.sh && \
     echo '    fi' >> start.sh && \
@@ -314,17 +240,12 @@ EXPOSE 8080
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV NODE_OPTIONS="--no-warnings"
-ENV DEBUG=twitter*
-ENV TWITTER_CLIENT=true
-ENV AGENT_CLIENTS=twitter
-ENV AUTOPOST=true
-ENV AUTOPOST_INTERVAL=60
-
-# Add Twitter client-specific environment variables
-ENV TWITTER_CLIENT_ENABLED=true
+ENV DEBUG=twitter*,@elizaos/plugin-twitter*
+ENV ENABLE_PLUGINS=twitter
 ENV ENABLE_TWITTER=true
-ENV CLIENT_TYPES=twitter
-ENV DEBUG_TWITTER=true
+ENV PLUGINS=twitter
+ENV TWITTER_AUTOPOST=true
+ENV TWITTER_AUTOPOST_INTERVAL=60
 ENV DISPLAY_NAME="Nova 11 Wing"
 
 # Set the command to run the entry point script
