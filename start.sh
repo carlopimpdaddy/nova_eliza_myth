@@ -48,16 +48,89 @@ EOF
 cp /app/.env /app/eliza/agent/.env
 log "Copied .env to agent directory"
 
-# DIRECT EXECUTION APPROACH - No launcher script needed
-log "Starting ElizaOS with Twitter plugin (direct execution)..."
+# Create a tsconfig.json file to help ts-node understand ES modules
+log "Creating a tsconfig.json file for ts-node..."
+cat > /app/eliza/agent/tsconfig.json << EOF
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "ts-node": {
+    "esm": true,
+    "transpileOnly": true,
+    "swc": true,
+    "experimentalSpecifierResolution": "node"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
+EOF
+
+# Create a simple wrapper script
+log "Creating starter script for ElizaOS..."
+cat > /app/eliza/agent/start-eliza.js << EOF
+// ElizaOS starter script
+// This will execute the TypeScript file with proper Node.js module settings
+import { spawn } from 'child_process';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// Get current directory in ESM
+const __dirname = dirname(fileURLToPath(import.meta.url));
+console.log('Starting ElizaOS from directory:', __dirname);
+
+// Configure process arguments
+const args = [
+  '--require=ts-node/register',
+  '--loader=ts-node/esm',
+  'src/index.ts',
+  '--isRoot',
+  '--plugin', 'twitter',
+  '--autopost',
+  '--debug'
+];
+
+console.log('Starting ElizaOS with arguments:', args.join(' '));
+
+// Spawn node process with proper configuration
+const proc = spawn('node', args, {
+  cwd: __dirname,
+  stdio: 'inherit',
+  env: {
+    ...process.env,
+    NODE_OPTIONS: '--no-warnings',
+    TS_NODE_PROJECT: './tsconfig.json'
+  }
+});
+
+proc.on('error', (err) => {
+  console.error('Failed to start ElizaOS:', err);
+  process.exit(1);
+});
+
+proc.on('exit', (code) => {
+  console.log('ElizaOS process exited with code:', code);
+  process.exit(code || 0);
+});
+EOF
+
+# Start ElizaOS using the wrapper script
+log "Starting ElizaOS with Twitter plugin..."
 cd /app/eliza/agent
 log "Working directory: $(pwd)"
 log "Directory contents: $(ls -la)"
 
-# Start ElizaOS directly in the background
-export NODE_OPTIONS="--no-warnings --experimental-specifier-resolution=node"
-log "Starting ElizaOS with: npx ts-node --swc src/index.ts --isRoot --plugin twitter --autopost --debug"
-npx ts-node --swc src/index.ts --isRoot --plugin twitter --autopost --debug &
+# Start the wrapper script in the background
+log "Starting ElizaOS with Node.js wrapper script"
+node start-eliza.js &
 ELIZA_PID=$!
 log "ElizaOS started with PID $ELIZA_PID"
 
@@ -68,8 +141,8 @@ while true; do
     if ! kill -0 $ELIZA_PID 2>/dev/null; then
         log "ElizaOS process died. Restarting..."
         cd /app/eliza/agent
-        log "Restarting ElizaOS with: npx ts-node --swc src/index.ts --isRoot --plugin twitter --autopost --debug"
-        npx ts-node --swc src/index.ts --isRoot --plugin twitter --autopost --debug &
+        log "Restarting ElizaOS with Node.js wrapper script"
+        node start-eliza.js &
         ELIZA_PID=$!
         log "ElizaOS restarted with PID $ELIZA_PID"
     fi
