@@ -211,8 +211,50 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo 'wait $HEALTH_PID' >> start.sh && \
     chmod +x start.sh
 
-# Make agent directory that Railway is looking for 
-RUN mkdir -p /app/agent/dist
+# Make agent directory that Railway is looking for and create an entry point file
+# This is critical - Railway is directly trying to run this specific file
+RUN mkdir -p /app/agent/dist && \
+    echo '// Railway entry point for the agent' > /app/agent/dist/index.js && \
+    echo 'console.log("Railway agent entry point starting...");' >> /app/agent/dist/index.js && \
+    echo '' >> /app/agent/dist/index.js && \
+    echo '// Check if we have a health server available and use it' >> /app/agent/dist/index.js && \
+    echo 'try {' >> /app/agent/dist/index.js && \
+    echo '  console.log("Starting health check server from agent entry point");' >> /app/agent/dist/index.js && \
+    echo '  if (require("fs").existsSync("/app/health-server.js")) {' >> /app/agent/dist/index.js && \
+    echo '    console.log("Found health server, starting it");' >> /app/agent/dist/index.js && \
+    echo '    require("/app/health-server.js");' >> /app/agent/dist/index.js && \
+    echo '  } else {' >> /app/agent/dist/index.js && \
+    echo '    // Create a simple health check server' >> /app/agent/dist/index.js && \
+    echo '    console.log("Health server not found, creating a simple one");' >> /app/agent/dist/index.js && \
+    echo '    const http = require("http");' >> /app/agent/dist/index.js && \
+    echo '    const port = process.env.PORT || 3000;' >> /app/agent/dist/index.js && \
+    echo '    const server = http.createServer((req, res) => {' >> /app/agent/dist/index.js && \
+    echo '      console.log("Received request:", req.url);' >> /app/agent/dist/index.js && \
+    echo '      if (req.url === "/health") {' >> /app/agent/dist/index.js && \
+    echo '        res.statusCode = 200;' >> /app/agent/dist/index.js && \
+    echo '        res.setHeader("Content-Type", "application/json");' >> /app/agent/dist/index.js && \
+    echo '        res.end(JSON.stringify({ status: "ok" }));' >> /app/agent/dist/index.js && \
+    echo '      } else {' >> /app/agent/dist/index.js && \
+    echo '        res.statusCode = 200;' >> /app/agent/dist/index.js && \
+    echo '        res.setHeader("Content-Type", "text/plain");' >> /app/agent/dist/index.js && \
+    echo '        res.end("Service is running");' >> /app/agent/dist/index.js && \
+    echo '      }' >> /app/agent/dist/index.js && \
+    echo '    });' >> /app/agent/dist/index.js && \
+    echo '    server.listen(port, "0.0.0.0", () => {' >> /app/agent/dist/index.js && \
+    echo '      console.log(`Server running at http://0.0.0.0:${port}/`);' >> /app/agent/dist/index.js && \
+    echo '    });' >> /app/agent/dist/index.js && \
+    echo '  }' >> /app/agent/dist/index.js && \
+    echo '' >> /app/agent/dist/index.js && \
+    echo '  // Try to also run our start script if possible' >> /app/agent/dist/index.js && \
+    echo '  if (require("fs").existsSync("/app/start.sh")) {' >> /app/agent/dist/index.js && \
+    echo '    console.log("Found start.sh, executing it");' >> /app/agent/dist/index.js && \
+    echo '    require("child_process").spawn("/app/start.sh", [], { stdio: "inherit", shell: true });' >> /app/agent/dist/index.js && \
+    echo '  }' >> /app/agent/dist/index.js && \
+    echo '} catch (error) {' >> /app/agent/dist/index.js && \
+    echo '  console.error("Error in agent entry point:", error);' >> /app/agent/dist/index.js && \
+    echo '}' >> /app/agent/dist/index.js && \
+    echo '' >> /app/agent/dist/index.js && \
+    echo 'module.exports = { start: () => console.log("Agent module loaded") };' >> /app/agent/dist/index.js
 
 # Final image
 FROM node:20-slim
@@ -278,4 +320,4 @@ ENV DEBUG_TWITTER=true
 ENV DISPLAY_NAME="Nova 11 Wing"
 
 # Set the command to run the start script
-CMD ["/app/start.sh"]
+CMD ["node", "/app/agent/dist/index.js"]
