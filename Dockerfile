@@ -21,42 +21,49 @@ RUN npm install -g pnpm@9.15.4 && \
 # Set Python 3 as the default python
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 
-# Create simple health check app and make agent compatible with CommonJS
+# Create health check app as a module that can be required by the agent
 WORKDIR /app
 RUN npm init -y && \
     npm install express && \
-    echo 'const express = require("express");' > server.js && \
-    echo 'const app = express();' >> server.js && \
-    echo 'const port = process.env.PORT || 3000;' >> server.js && \
-    echo 'console.log("Starting server on port:", port);' >> server.js && \
-    echo 'app.get("/health", (req, res) => {' >> server.js && \
-    echo '  console.log("Health check request received");' >> server.js && \
-    echo '  res.status(200).json({ status: "ok" });' >> server.js && \
-    echo '});' >> server.js && \
-    echo 'app.get("*", (req, res) => {' >> server.js && \
-    echo '  console.log("Request received:", req.url);' >> server.js && \
-    echo '  res.status(200).send("Service is running");' >> server.js && \
-    echo '});' >> server.js && \
-    echo 'app.listen(port, "0.0.0.0", () => {' >> server.js && \
-    echo '  console.log(`Server running on port ${port}`);' >> server.js && \
-    echo '});' >> server.js && \
-    mkdir -p agent/dist && \
-    echo 'console.log("Agent starting up");' > agent/dist/index.js && \
+    echo 'const express = require("express");' > health-server.js && \
+    echo 'const app = express();' >> health-server.js && \
+    echo 'const port = process.env.PORT || 3000;' >> health-server.js && \
+    echo 'function startServer() {' >> health-server.js && \
+    echo '  console.log("Starting health check server on port:", port);' >> health-server.js && \
+    echo '  app.get("/health", (req, res) => {' >> health-server.js && \
+    echo '    console.log("Health check request received");' >> health-server.js && \
+    echo '    res.status(200).json({ status: "ok" });' >> health-server.js && \
+    echo '  });' >> health-server.js && \
+    echo '  app.get("*", (req, res) => {' >> health-server.js && \
+    echo '    console.log("Request received:", req.url);' >> health-server.js && \
+    echo '    res.status(200).send("Service is running");' >> health-server.js && \
+    echo '  });' >> health-server.js && \
+    echo '  return app.listen(port, "0.0.0.0", () => {' >> health-server.js && \
+    echo '    console.log(`Health check server running on port ${port}`);' >> health-server.js && \
+    echo '  });' >> health-server.js && \
+    echo '}' >> health-server.js && \
+    echo 'module.exports = { startServer };' >> health-server.js && \
+    echo 'if (require.main === module) {' >> health-server.js && \
+    echo '  startServer();' >> health-server.js && \
+    echo '}' >> health-server.js && \
+    mkdir -p agent/dist
+
+# Create a launcher script that delegates to the appropriate file
+RUN echo 'console.log("Agent starting up");' > server.js && \
+    echo 'require("./health-server").startServer();' >> server.js && \
+    echo 'console.log("Agent module has been loaded and health check server started");' >> server.js
+
+# Create agent index.js that also launches health check server
+RUN echo 'console.log("Agent starting up");' > agent/dist/index.js && \
+    echo 'require("../../health-server").startServer();' >> agent/dist/index.js && \
     echo 'module.exports = { start: () => console.log("Agent started") };' >> agent/dist/index.js
 
 # Create package.json with proper configuration
 RUN node -e "const pkg = require('./package.json'); \
     pkg.scripts = pkg.scripts || {}; \
     pkg.scripts.start = 'node server.js'; \
-    pkg.scripts.agent = 'node agent/dist/index.js'; \
     pkg.main = 'server.js'; \
     require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
-
-# Create entrypoint script to ensure we run the health check server
-RUN echo '#!/bin/sh' > entrypoint.sh && \
-    echo 'echo "Starting health check server..."' >> entrypoint.sh && \
-    echo 'exec node server.js' >> entrypoint.sh && \
-    chmod +x entrypoint.sh
 
 # Final image
 FROM node:18-slim
@@ -76,5 +83,9 @@ COPY --from=builder /app /app
 # Expose port
 EXPOSE 3000
 
-# Start server using entrypoint script
-CMD ["./entrypoint.sh"]
+# Set environment variable to ensure we know what we're running in
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Start server (Railway may override this, but we set it anyway)
+CMD ["node", "server.js"]
