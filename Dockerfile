@@ -49,24 +49,23 @@ WORKDIR /app
 # Create required directories
 RUN mkdir -p /app/agent/dist
 
-# Copy specific files first to ensure they exist
-COPY start.sh /app/
+# Copy health check specific files first
+COPY health-check-package.json /app/package.json
 COPY health-server.js /app/
-COPY package.json /app/
 COPY index.js /app/agent/dist/
+COPY start.sh /app/
 
 # Make sure scripts are executable
 RUN chmod +x /app/start.sh
+
+# Install dependencies for health server using npm (not pnpm)
+RUN npm install --production
 
 # Create eliza directory for application
 RUN mkdir -p /app/eliza
 
 # Copy the application code to eliza directory
 COPY . /app/eliza/
-
-# Install dependencies for health server - using pnpm instead of npm to handle workspace references
-WORKDIR /app
-RUN pnpm install --prod
 
 # Build the ElizaOS application
 WORKDIR /app/eliza
