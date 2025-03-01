@@ -25,34 +25,39 @@ RUN echo '{"name":"health-check","version":"1.0.0","main":"health-server.js","de
 # Install dependencies
 RUN npm install --production
 
-# Create health check server
+# Create health check server - IMPORTANT: Keep this as a separate service listening on PORT env var
+# Railway expects a service on the PORT environment variable responding to /health
 RUN echo 'const express = require("express");' > health-server.js && \
     echo 'const app = express();' >> health-server.js && \
     echo 'const port = process.env.PORT || 8080;' >> health-server.js && \
     echo 'console.log("Starting health check server on port:", port);' >> health-server.js && \
     echo 'app.get("/health", (req, res) => {' >> health-server.js && \
-    echo '  console.log("Health check request received");' >> health-server.js && \
+    echo '  console.log("Health check request received at " + new Date().toISOString());' >> health-server.js && \
     echo '  res.status(200).json({ status: "ok" });' >> health-server.js && \
+    echo '});' >> health-server.js && \
+    echo 'app.get("/", (req, res) => {' >> health-server.js && \
+    echo '  console.log("Root request received");' >> health-server.js && \
+    echo '  res.status(200).send("ElizaOS is running");' >> health-server.js && \
     echo '});' >> health-server.js && \
     echo 'app.get("*", (req, res) => {' >> health-server.js && \
     echo '  console.log("Request received:", req.url);' >> health-server.js && \
     echo '  res.status(200).send("Service is running");' >> health-server.js && \
     echo '});' >> health-server.js && \
     echo 'app.listen(port, "0.0.0.0", () => {' >> health-server.js && \
-    echo '  console.log(`Health check server running on port ${port}`);' >> health-server.js && \
+    echo '  console.log(`Health check server running on port ${port} at ${new Date().toISOString()}`);' >> health-server.js && \
     echo '});' >> health-server.js
 
-# Create a simpler, more robust startup script that properly closes all conditions
+# Create a simpler, more robust startup script with proper error handling
 RUN echo '#!/bin/sh' > start.sh && \
     echo 'set -e' >> start.sh && \
     echo '' >> start.sh && \
     echo '# Print diagnostic information' >> start.sh && \
-    echo 'echo "Start script running in $(pwd)"' >> start.sh && \
+    echo 'echo "Start script running in $(pwd) at $(date)"' >> start.sh && \
     echo 'echo "Directory contents: $(ls -la)"' >> start.sh && \
     echo '' >> start.sh && \
     echo '# Start ElizaOS application if it exists' >> start.sh && \
     echo 'if [ -d "/app/eliza" ]; then' >> start.sh && \
-    echo '  echo "Starting main ElizaOS application with Twitter client..."' >> start.sh && \
+    echo '  echo "Starting main ElizaOS application with Twitter plugin..."' >> start.sh && \
     echo '  cd /app/eliza' >> start.sh && \
     echo '  echo "ElizaOS directory: $(pwd)"' >> start.sh && \
     echo '  echo "Directory contents: $(ls -la)"' >> start.sh && \
@@ -86,36 +91,51 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '      echo "WARNING: Missing Twitter credentials. Twitter integration will not work."' >> start.sh && \
     echo '    else' >> start.sh && \
     echo '      echo "All Twitter credentials present, setting up Twitter integration"' >> start.sh && \
-    echo '      # Create .env files' >> start.sh && \
-    echo '      echo "Creating .env files with Twitter configuration..."' >> start.sh && \
-    echo '      echo "TWITTER_API_KEY=$TWITTER_API_KEY" > .env' >> start.sh && \
-    echo '      echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env' >> start.sh && \
-    echo '      echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env' >> start.sh && \
-    echo '      echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> .env' >> start.sh && \
-    echo '      echo "ENABLE_PLUGINS=twitter" >> .env' >> start.sh && \
-    echo '      echo "ENABLE_TWITTER=true" >> .env' >> start.sh && \
-    echo '      echo "PLUGINS=twitter" >> .env' >> start.sh && \
-    echo '      echo "TWITTER_AUTOPOST=true" >> .env' >> start.sh && \
-    echo '      echo "TWITTER_AUTOPOST_INTERVAL=60" >> .env' >> start.sh && \
-    echo '      echo "DEBUG=twitter*,@elizaos/plugin-twitter*" >> .env' >> start.sh && \
-    echo '      echo "DISPLAY_NAME=Nova 11 Wing" >> .env' >> start.sh && \
     echo '' >> start.sh && \
-    echo '      # Also create .env in agent directory if it exists' >> start.sh && \
+    echo '      # Check if the plugin package is installed' >> start.sh && \
+    echo '      if [ -d "node_modules/@elizaos/plugin-twitter" ]; then' >> start.sh && \
+    echo '        echo "Found @elizaos/plugin-twitter package. Using built-in Twitter plugin."' >> start.sh && \
+    echo '      else' >> start.sh && \
+    echo '        echo "Twitter plugin package not found. Installing dependencies..."' >> start.sh && \
+    echo '        pnpm install || echo "Warning: pnpm install failed but continuing"' >> start.sh && \
+    echo '      fi' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '      # Create full .env file with all possible Twitter config variables' >> start.sh && \
+    echo '      echo "Creating .env files with Twitter configuration..."' >> start.sh && \
+    echo '      cat > .env << EOF' >> start.sh && \
+    echo '# Twitter API Credentials' >> start.sh && \
+    echo 'TWITTER_API_KEY=$TWITTER_API_KEY' >> start.sh && \
+    echo 'TWITTER_API_SECRET=$TWITTER_API_SECRET' >> start.sh && \
+    echo 'TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN' >> start.sh && \
+    echo 'TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET' >> start.sh && \
+    echo 'TWITTER_BEARER_TOKEN=$TWITTER_ACCESS_TOKEN' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '# Twitter Plugin Configuration' >> start.sh && \
+    echo 'ENABLE_PLUGINS=twitter' >> start.sh && \
+    echo 'PLUGINS=twitter' >> start.sh && \
+    echo 'ENABLE_TWITTER=true' >> start.sh && \
+    echo 'TWITTER_AUTOPOST=true' >> start.sh && \
+    echo 'TWITTER_AUTOPOST_INTERVAL=60' >> start.sh && \
+    echo 'DISPLAY_NAME=Nova 11 Wing' >> start.sh && \
+    echo 'DEBUG=twitter*,@elizaos/plugin-twitter*' >> start.sh && \
+    echo 'EOF' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '      # Copy .env to agent directory for direct access' >> start.sh && \
     echo '      if [ -d "agent" ]; then' >> start.sh && \
     echo '        cp .env agent/.env' >> start.sh && \
     echo '        echo "Copied .env to agent directory"' >> start.sh && \
     echo '      fi' >> start.sh && \
     echo '' >> start.sh && \
-    echo '      # Set Twitter environment variables' >> start.sh && \
+    echo '      # Set Twitter environment variables directly for the process' >> start.sh && \
     echo '      export ENABLE_PLUGINS=twitter' >> start.sh && \
-    echo '      export ENABLE_TWITTER=true' >> start.sh && \
     echo '      export PLUGINS=twitter' >> start.sh && \
+    echo '      export ENABLE_TWITTER=true' >> start.sh && \
     echo '      export TWITTER_AUTOPOST=true' >> start.sh && \
     echo '      export TWITTER_AUTOPOST_INTERVAL=60' >> start.sh && \
     echo '      export DEBUG=twitter*,@elizaos/plugin-twitter*' >> start.sh && \
     echo '      export DISPLAY_NAME="Nova 11 Wing"' >> start.sh && \
     echo '' >> start.sh && \
-    echo '      # Start the agent with Twitter enabled' >> start.sh && \
+    echo '      # Start the agent with Twitter plugin activated' >> start.sh && \
     echo '      echo "Starting ElizaOS with Twitter plugin..."' >> start.sh && \
     echo '      NODE_OPTIONS="--no-warnings" pnpm start --isRoot --plugin twitter --autopost &' >> start.sh && \
     echo '      AGENT_PID=$!' >> start.sh && \
@@ -128,9 +148,16 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '  echo "ElizaOS directory not found"' >> start.sh && \
     echo 'fi' >> start.sh && \
     echo '' >> start.sh && \
-    echo '# Keep the container running with a simple loop' >> start.sh && \
+    echo '# Keep the container running' >> start.sh && \
     echo 'echo "ElizaOS services running. Container will stay alive."' >> start.sh && \
-    echo 'while true; do sleep 10; done' >> start.sh && \
+    echo 'while true; do' >> start.sh && \
+    echo '  sleep 30' >> start.sh && \
+    echo '  # Check health check server is still running' >> start.sh && \
+    echo '  if ! curl -s http://localhost:${PORT:-8080}/health > /dev/null; then' >> start.sh && \
+    echo '    echo "WARNING: Health check server not responding. Restarting..."' >> start.sh && \
+    echo '    node /app/health-server.js &' >> start.sh && \
+    echo '  fi' >> start.sh && \
+    echo 'done' >> start.sh && \
     chmod +x start.sh
 
 # Make agent directory that Railway is looking for and create an entry point file
@@ -139,9 +166,10 @@ RUN mkdir -p /app/agent/dist && \
     echo '// Railway entry point for the agent' > /app/agent/dist/index.js && \
     echo 'console.log("Railway agent entry point starting...");' >> /app/agent/dist/index.js && \
     echo '' >> /app/agent/dist/index.js && \
-    echo '// Check if we have a health server available and use it' >> /app/agent/dist/index.js && \
+    echo '// IMPORTANT: Only start one health check server - let the main app run separately' >> /app/agent/dist/index.js && \
     echo 'try {' >> /app/agent/dist/index.js && \
     echo '  console.log("Starting health check server from agent entry point");' >> /app/agent/dist/index.js && \
+    echo '  // Start primary health check server - this is what Railway will probe' >> /app/agent/dist/index.js && \
     echo '  if (require("fs").existsSync("/app/health-server.js")) {' >> /app/agent/dist/index.js && \
     echo '    console.log("Found health server, starting it");' >> /app/agent/dist/index.js && \
     echo '    require("/app/health-server.js");' >> /app/agent/dist/index.js && \
@@ -167,7 +195,7 @@ RUN mkdir -p /app/agent/dist && \
     echo '    });' >> /app/agent/dist/index.js && \
     echo '  }' >> /app/agent/dist/index.js && \
     echo '' >> /app/agent/dist/index.js && \
-    echo '  // Try to also run our start script if possible' >> /app/agent/dist/index.js && \
+    echo '  // Run our start script to launch the ElizaOS application' >> /app/agent/dist/index.js && \
     echo '  if (require("fs").existsSync("/app/start.sh")) {' >> /app/agent/dist/index.js && \
     echo '    console.log("Found start.sh, executing it");' >> /app/agent/dist/index.js && \
     echo '    // Check file permissions' >> /app/agent/dist/index.js && \
@@ -179,7 +207,8 @@ RUN mkdir -p /app/agent/dist && \
     echo '    } catch (permError) {' >> /app/agent/dist/index.js && \
     echo '      console.error("Failed to set permissions:", permError);' >> /app/agent/dist/index.js && \
     echo '    }' >> /app/agent/dist/index.js && \
-    echo '    require("child_process").execSync("/app/start.sh", { stdio: "inherit", shell: true });' >> /app/agent/dist/index.js && \
+    echo '    // Use spawn instead of execSync to avoid blocking the health check server' >> /app/agent/dist/index.js && \
+    echo '    require("child_process").spawn("/app/start.sh", [], { stdio: "inherit", shell: true });' >> /app/agent/dist/index.js && \
     echo '  }' >> /app/agent/dist/index.js && \
     echo '} catch (error) {' >> /app/agent/dist/index.js && \
     echo '  console.error("Error in agent entry point:", error);' >> /app/agent/dist/index.js && \
@@ -233,7 +262,7 @@ RUN if [ -f "package.json" ]; then \
 # Return to app directory
 WORKDIR /app
 
-# Expose port for health check
+# Expose port for health check - Railway expects this port
 EXPOSE 8080
 
 # Set environment variables
@@ -242,8 +271,8 @@ ENV PORT=8080
 ENV NODE_OPTIONS="--no-warnings"
 ENV DEBUG=twitter*,@elizaos/plugin-twitter*
 ENV ENABLE_PLUGINS=twitter
-ENV ENABLE_TWITTER=true
 ENV PLUGINS=twitter
+ENV ENABLE_TWITTER=true
 ENV TWITTER_AUTOPOST=true
 ENV TWITTER_AUTOPOST_INTERVAL=60
 ENV DISPLAY_NAME="Nova 11 Wing"
