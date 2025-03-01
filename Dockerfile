@@ -79,23 +79,40 @@ COPY --from=builder /app/characters ./characters
 # Expose necessary ports
 EXPOSE 3000 5173
 
-# Create health endpoint script
-RUN echo "const http = require('http'); \
-    const port = 3000; \
-    const server = http.createServer((req, res) => { \
-    console.log('Received request:', req.method, req.url); \
-    if (req.url === '/health') { \
-    console.log('Responding to health check'); \
-    res.writeHead(200, {'Content-Type': 'application/json'}); \
-    res.end(JSON.stringify({ status: 'ok' })); \
-    } else { \
-    res.writeHead(200, {'Content-Type': 'text/plain'}); \
-    res.end('Health check server running'); \
-    } \
-    }); \
-    server.listen(port, '0.0.0.0', () => { \
-    console.log('Health check server running on port', port); \
-    });" > /app/health.js
+# Create a simple health check file
+COPY <<EOF /app/healthcheck.js
+const http = require('http');
+const PORT = 3000;
 
-# Command to start the application - run health server with higher priority
-CMD ["sh", "-c", "node /app/health.js"]
+// Create a simple server
+const server = http.createServer((req, res) => {
+  // Log all requests
+  console.log(new Date().toISOString(), 'Request received:', req.method, req.url);
+  
+  // Always respond with 200 OK to any request
+  res.writeHead(200, {'Content-Type': 'application/json'});
+  res.end(JSON.stringify({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    path: req.url
+  }));
+});
+
+// Handle server errors
+server.on('error', (err) => {
+  console.error('Server error:', err);
+});
+
+// Start the server
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Health check server running on http://0.0.0.0:${PORT}`);
+});
+
+// Log any uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+});
+EOF
+
+# Command to start the health check server
+CMD ["node", "/app/healthcheck.js"]
