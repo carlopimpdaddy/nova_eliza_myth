@@ -48,7 +48,8 @@ RUN pnpm run build && pnpm prune --prod
 
 # List contents of important directories for debugging
 RUN ls -la /app || true
-RUN mkdir -p /app/dist /app/agent/dist || true
+RUN mkdir -p /app/dist /app/agent/dist
+RUN touch /app/dist/.keep /app/agent/dist/.keep
 RUN ls -la /app/agent/dist || true
 RUN ls -la /app/dist || true
 
@@ -72,7 +73,7 @@ WORKDIR /app
 RUN mkdir -p ./dist
 
 # Copy built artifacts and production dependencies from the builder stage
-COPY --from=builder /app/dist ./dist || true
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/.npmrc ./
