@@ -48,21 +48,24 @@ RUN npm init -y && \
     echo '}' >> health-server.js && \
     mkdir -p agent/dist
 
-# Create a launcher script that delegates to the appropriate file
-RUN echo 'console.log("Agent starting up");' > server.js && \
-    echo 'require("./health-server").startServer();' >> server.js && \
-    echo 'console.log("Agent module has been loaded and health check server started");' >> server.js
-
-# Create agent index.js that also launches health check server
-RUN echo 'console.log("Agent starting up");' > agent/dist/index.js && \
-    echo 'require("../../health-server").startServer();' >> agent/dist/index.js && \
-    echo 'module.exports = { start: () => console.log("Agent started") };' >> agent/dist/index.js
+# Create a launcher script that starts health check server and ElizaOS app
+RUN echo '#!/bin/sh' > start.sh && \
+    echo 'echo "Starting ElizaOS with health check server..."' >> start.sh && \
+    echo 'node health-server.js &' >> start.sh && \
+    echo 'HEALTH_PID=$!' >> start.sh && \
+    echo 'echo "Health check server started with PID $HEALTH_PID"' >> start.sh && \
+    echo 'echo "Starting main ElizaOS application..."' >> start.sh && \
+    echo 'cd /app/eliza && npm start' >> start.sh && \
+    echo 'ELIZA_EXIT=$?' >> start.sh && \
+    echo 'kill $HEALTH_PID' >> start.sh && \
+    echo 'exit $ELIZA_EXIT' >> start.sh && \
+    chmod +x start.sh
 
 # Create package.json with proper configuration
 RUN node -e "const pkg = require('./package.json'); \
     pkg.scripts = pkg.scripts || {}; \
-    pkg.scripts.start = 'node server.js'; \
-    pkg.main = 'server.js'; \
+    pkg.scripts.start = './start.sh'; \
+    pkg.main = 'health-server.js'; \
     require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
 
 # Final image
@@ -70,22 +73,67 @@ FROM node:18-slim
 
 # Install runtime dependencies
 RUN apt-get update && \
-    apt-get install -y curl && \
+    apt-get install -y curl git python3 python3-pip make g++ build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Create app directory
 WORKDIR /app
 
-# Copy the app
+# Copy the health check server from builder
 COPY --from=builder /app /app
 
-# Expose port
+# Clone and build the ElizaOS application
+RUN mkdir -p /app/eliza
+WORKDIR /app/eliza
+
+# Copy the application code (assuming it's in the build context)
+# Note: This will only work if you're building from a directory containing your ElizaOS code
+COPY . /app/eliza
+
+# Install dependencies and build the application
+RUN npm install -g pnpm@9.15.4 && \
+    pnpm install && \
+    pnpm run build
+
+# Set up types.ts if it's missing
+RUN if [ ! -f "agent/src/types.ts" ]; then \
+    echo 'export type ModelProviderName = "grok" | "openai" | "anthropic" | "perplexity" | "gemini";' > agent/src/types.ts && \
+    echo 'export interface Character {' >> agent/src/types.ts && \
+    echo '  name: string;' >> agent/src/types.ts && \
+    echo '  database: any;' >> agent/src/types.ts && \
+    echo '  username: string;' >> agent/src/types.ts && \
+    echo '  screenName: string;' >> agent/src/types.ts && \
+    echo '  plugins: any[];' >> agent/src/types.ts && \
+    echo '  clients: string[];' >> agent/src/types.ts && \
+    echo '  modelProvider: ModelProviderName;' >> agent/src/types.ts && \
+    echo '  settings: any;' >> agent/src/types.ts && \
+    echo '  system: string;' >> agent/src/types.ts && \
+    echo '  bio: string[];' >> agent/src/types.ts && \
+    echo '  lore: string[];' >> agent/src/types.ts && \
+    echo '  messageExamples: any[][];' >> agent/src/types.ts && \
+    echo '  postExamples: string[];' >> agent/src/types.ts && \
+    echo '  topics: string[];' >> agent/src/types.ts && \
+    echo '  style: {' >> agent/src/types.ts && \
+    echo '    all: string[];' >> agent/src/types.ts && \
+    echo '    chat: string[];' >> agent/src/types.ts && \
+    echo '    post: string[];' >> agent/src/types.ts && \
+    echo '  };' >> agent/src/types.ts && \
+    echo '  adjectives: string[];' >> agent/src/types.ts && \
+    echo '  extends: any[];' >> agent/src/types.ts && \
+    echo '}' >> agent/src/types.ts; \
+    fi
+
+# Rebuild if we added types
+RUN pnpm run build
+
+WORKDIR /app
+# Expose port for health check
 EXPOSE 3000
 
-# Set environment variable to ensure we know what we're running in
+# Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Start server (Railway may override this, but we set it anyway)
-CMD ["node", "server.js"]
+# Start the application with our launcher script
+CMD ["./start.sh"]
