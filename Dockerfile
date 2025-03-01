@@ -44,14 +44,7 @@ RUN echo 'const express = require("express");' > health-server.js && \
 
 # Create a more robust startup script for both health check and application
 RUN echo '#!/bin/sh' > start.sh && \
-    echo 'echo "Starting health check server..."' >> start.sh && \
-    echo 'node health-server.js &' >> start.sh && \
-    echo 'HEALTH_PID=$!' >> start.sh && \
-    echo 'echo "Health check server started with PID $HEALTH_PID"' >> start.sh && \
-    echo '' >> start.sh && \
-    echo 'echo "Waiting for health check server to initialize..."' >> start.sh && \
-    echo 'sleep 2' >> start.sh && \
-    echo '' >> start.sh && \
+    echo 'echo "Start script running in $(pwd)"' >> start.sh && \
     echo 'echo "Starting main ElizaOS application with Twitter client..."' >> start.sh && \
     echo 'cd /app/eliza' >> start.sh && \
     echo 'if [ -f "package.json" ]; then' >> start.sh && \
@@ -206,9 +199,9 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '  echo "ElizaOS application not found. Health check server will continue running."' >> start.sh && \
     echo 'fi' >> start.sh && \
     echo '' >> start.sh && \
-    echo '# Keep the container running' >> start.sh && \
-    echo 'echo "Services running. Keeping container alive..."' >> start.sh && \
-    echo 'wait $HEALTH_PID' >> start.sh && \
+    echo '# Keep the container running with a simple loop' >> start.sh && \
+    echo 'echo "ElizaOS services running. Container will stay alive."' >> start.sh && \
+    echo 'while true; do sleep 10; done' >> start.sh && \
     chmod +x start.sh
 
 # Make agent directory that Railway is looking for and create an entry point file
