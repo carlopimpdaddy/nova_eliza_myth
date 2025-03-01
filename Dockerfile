@@ -55,7 +55,8 @@ RUN mkdir -p /app/eliza
 # Copy the application code
 COPY . /app/eliza/
 
-# Make sure start.sh has execution permissions in the final container
+# Copy start.sh to the correct location and make it executable
+COPY start.sh /app/
 RUN chmod +x /app/start.sh
 
 # Build the ElizaOS application
