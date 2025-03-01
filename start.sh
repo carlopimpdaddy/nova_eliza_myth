@@ -48,45 +48,45 @@ EOF
 cp /app/.env /app/eliza/agent/.env
 log "Copied .env to agent directory"
 
-# Create a simple CommonJS loader for TypeScript (using .cjs extension)
-log "Creating a TypeScript loader..."
-cat > /app/eliza/agent/loader.cjs << EOF
-// Simple CommonJS loader for TypeScript
-require('ts-node').register({
-  transpileOnly: true,
-  skipProject: true,
-  compilerOptions: {
-    module: 'commonjs',
-    esModuleInterop: true,
-    target: 'es2020'
-  }
-});
+# Create a simple JS script that launches ElizaOS directly
+log "Creating a launch script..."
+cat > /app/eliza/agent/dist/launch.js << EOF
+// Simple launcher script for ElizaOS
+const { spawn } = require('child_process');
 
-// Set command line arguments
-process.argv = [
-  process.argv[0],
-  process.argv[1],
+// Start ElizaOS process
+console.log('Launching ElizaOS...');
+
+// Use direct npx execution with ts-node
+const process = spawn('npx', [
+  'ts-node',
+  '--swc',  // Use faster SWC compiler
+  'src/index.ts',
   '--isRoot',
   '--plugin', 'twitter',
   '--autopost',
   '--debug'
-];
+], {
+  cwd: '/app/eliza/agent',
+  stdio: 'inherit',
+  env: {
+    ...process.env,
+    NODE_OPTIONS: '--no-warnings'
+  }
+});
 
-// Load the TypeScript file
-try {
-  require('./src/index.ts');
-  console.log('Successfully loaded ElizaOS via CommonJS loader');
-} catch (err) {
-  console.error('Error loading ElizaOS:', err);
-  process.exit(1);
-}
+process.on('error', (err) => {
+  console.error('Failed to start ElizaOS:', err);
+});
+
+console.log('ElizaOS process launched');
 EOF
 
-# Start ElizaOS using the JS loader with CJS extension
-log "Starting ElizaOS with Twitter plugin via CommonJS loader..."
+# Start ElizaOS using the standard JS file in the dist directory
+log "Starting ElizaOS with Twitter plugin..."
 cd /app/eliza/agent
-export NODE_OPTIONS="--no-warnings"
-node loader.cjs &
+export NODE_OPTIONS="--no-warnings --experimental-specifier-resolution=node"
+node dist/launch.js &
 ELIZA_PID=$!
 log "ElizaOS started with PID $ELIZA_PID"
 
@@ -97,7 +97,7 @@ while true; do
     if ! kill -0 $ELIZA_PID 2>/dev/null; then
         log "ElizaOS process died. Restarting..."
         cd /app/eliza/agent
-        node loader.cjs &
+        node dist/launch.js &
         ELIZA_PID=$!
         log "ElizaOS restarted with PID $ELIZA_PID"
     fi
