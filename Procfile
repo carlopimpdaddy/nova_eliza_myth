@@ -1,1 +1,1 @@
-web: node railway.js 
+web: npm install -g twitter-api-v2 ts-node && node railway.js 
