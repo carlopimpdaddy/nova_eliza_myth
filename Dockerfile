@@ -221,6 +221,80 @@ RUN echo '// Helper script to explicitly activate Twitter client' > /app/twitter
     echo '  }' >> /app/twitter-client.js && \
     echo '};' >> /app/twitter-client.js
 
+# Create a direct Twitter client initializer
+RUN echo '// Direct Twitter client initializer' > /app/twitter-initializer.js && \
+    echo 'console.log("Starting DIRECT Twitter client initialization...");' >> /app/twitter-initializer.js && \
+    echo 'const fs = require("fs");' >> /app/twitter-initializer.js && \
+    echo 'const path = require("path");' >> /app/twitter-initializer.js && \
+    echo 'const { spawn, exec } = require("child_process");' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo '// Set all required environment variables' >> /app/twitter-initializer.js && \
+    echo 'const twitterEnv = {' >> /app/twitter-initializer.js && \
+    echo '  TWITTER_CLIENT: "true",' >> /app/twitter-initializer.js && \
+    echo '  TWITTER_CLIENT_ENABLED: "true",' >> /app/twitter-initializer.js && \
+    echo '  ENABLE_TWITTER: "true",' >> /app/twitter-initializer.js && \
+    echo '  CLIENT_TYPES: "twitter",' >> /app/twitter-initializer.js && \
+    echo '  AGENT_CLIENTS: "twitter",' >> /app/twitter-initializer.js && \
+    echo '  AUTOPOST: "true",' >> /app/twitter-initializer.js && \
+    echo '  AUTOPOST_INTERVAL: "60",' >> /app/twitter-initializer.js && \
+    echo '  DEBUG: "twitter*",' >> /app/twitter-initializer.js && \
+    echo '  DEBUG_TWITTER: "true",' >> /app/twitter-initializer.js && \
+    echo '  DISPLAY_NAME: "Nova 11 Wing",' >> /app/twitter-initializer.js && \
+    echo '  NODE_OPTIONS: "--no-warnings"' >> /app/twitter-initializer.js && \
+    echo '};' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo '// Set all environment variables' >> /app/twitter-initializer.js && \
+    echo 'Object.keys(twitterEnv).forEach(key => {' >> /app/twitter-initializer.js && \
+    echo '  process.env[key] = twitterEnv[key];' >> /app/twitter-initializer.js && \
+    echo '});' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo '// Log Twitter credential environment variables' >> /app/twitter-initializer.js && \
+    echo 'console.log("Twitter credentials in direct initializer:");' >> /app/twitter-initializer.js && \
+    echo 'console.log(`TWITTER_API_KEY: ${process.env.TWITTER_API_KEY ? "SET" : "MISSING"}`);' >> /app/twitter-initializer.js && \
+    echo 'console.log(`TWITTER_API_SECRET: ${process.env.TWITTER_API_SECRET ? "SET" : "MISSING"}`);' >> /app/twitter-initializer.js && \
+    echo 'console.log(`TWITTER_ACCESS_TOKEN: ${process.env.TWITTER_ACCESS_TOKEN ? "SET" : "MISSING"}`);' >> /app/twitter-initializer.js && \
+    echo 'console.log(`TWITTER_ACCESS_SECRET: ${process.env.TWITTER_ACCESS_SECRET ? "SET" : "MISSING"}`);' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo '// Create the client directories if needed' >> /app/twitter-initializer.js && \
+    echo 'const clientDir = path.join("/app/eliza/agent/src/clients");' >> /app/twitter-initializer.js && \
+    echo 'const twitterDir = path.join(clientDir, "twitter");' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo '// Check if the Twitter client is available' >> /app/twitter-initializer.js && \
+    echo 'if (fs.existsSync(twitterDir)) {' >> /app/twitter-initializer.js && \
+    echo '  console.log("Found Twitter client directory at:", twitterDir);' >> /app/twitter-initializer.js && \
+    echo '  // List files in the Twitter client directory' >> /app/twitter-initializer.js && \
+    echo '  const files = fs.readdirSync(twitterDir);' >> /app/twitter-initializer.js && \
+    echo '  console.log("Files in Twitter client directory:", files);' >> /app/twitter-initializer.js && \
+    echo '} else {' >> /app/twitter-initializer.js && \
+    echo '  console.log("Twitter client directory not found at:", twitterDir);' >> /app/twitter-initializer.js && \
+    echo '}' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo '// Direct activation function' >> /app/twitter-initializer.js && \
+    echo 'function activateTwitterClient() {' >> /app/twitter-initializer.js && \
+    echo '  console.log("Directly activating Twitter client...");' >> /app/twitter-initializer.js && \
+    echo '  // Try to execute a direct pnpm client command to force Twitter client initialization' >> /app/twitter-initializer.js && \
+    echo '  try {' >> /app/twitter-initializer.js && \
+    echo '    console.log("Running direct Twitter client initialization command...");' >> /app/twitter-initializer.js && \
+    echo '    const cmd = "cd /app/eliza && pnpm --filter @elizaos/agent start:client twitter --autopost --interval=60";' >> /app/twitter-initializer.js && \
+    echo '    exec(cmd, { env: { ...process.env, ...twitterEnv } }, (error, stdout, stderr) => {' >> /app/twitter-initializer.js && \
+    echo '      if (error) {' >> /app/twitter-initializer.js && \
+    echo '        console.error("Twitter client initialization failed:", error);' >> /app/twitter-initializer.js && \
+    echo '        console.error(stderr);' >> /app/twitter-initializer.js && \
+    echo '      } else {' >> /app/twitter-initializer.js && \
+    echo '        console.log("Twitter client initialization output:", stdout);' >> /app/twitter-initializer.js && \
+    echo '      }' >> /app/twitter-initializer.js && \
+    echo '    });' >> /app/twitter-initializer.js && \
+    echo '  } catch (error) {' >> /app/twitter-initializer.js && \
+    echo '    console.error("Error in Twitter client direct activation:", error);' >> /app/twitter-initializer.js && \
+    echo '  }' >> /app/twitter-initializer.js && \
+    echo '}' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo '// Call the activation function' >> /app/twitter-initializer.js && \
+    echo 'activateTwitterClient();' >> /app/twitter-initializer.js && \
+    echo '' >> /app/twitter-initializer.js && \
+    echo 'module.exports = { activate: activateTwitterClient };' >> /app/twitter-initializer.js && \
+    chmod +x /app/twitter-initializer.js
+
 # Final image
 FROM node:20-slim
 
@@ -314,4 +388,4 @@ ENV DEBUG_TWITTER=true
 ENV DISPLAY_NAME="Nova 11 Wing"
 
 # Modified CMD to explicitly include Twitter client parameters
-CMD ["sh", "-c", "NODE_OPTIONS=\"--no-warnings\" node agent/dist/index.js --client twitter --autopost --interval=60 --debug"]
+CMD ["sh", "-c", "NODE_OPTIONS=\"--no-warnings\" node agent/dist/index.js --client twitter --autopost --interval=60"]
