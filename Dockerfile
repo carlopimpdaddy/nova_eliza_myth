@@ -89,5 +89,13 @@ COPY --from=builder /app/characters ./characters
 # Expose necessary ports
 EXPOSE 3000
 
+# Add a healthcheck to help with debugging
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3000/ || exit 1
+
+# Create a startup script
+RUN echo '#!/bin/sh\nset -e\necho "Starting application..."\nls -la /app\necho "Node version: $(node -v)"\necho "NPM version: $(npm -v)"\necho "PNPM version: $(pnpm -v)"\necho "Starting services..."\npnpm start & pnpm start:client\n' > /app/start.sh && \
+    chmod +x /app/start.sh
+
 # Command to start the application
-CMD ["sh", "-c", "pnpm start & pnpm start:client"]
+CMD ["/app/start.sh"]
