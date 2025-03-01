@@ -77,42 +77,21 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
 # Expose necessary ports
-EXPOSE 3000 5173
+EXPOSE 3000 5173 8080
 
-# Create a simple health check file
-COPY <<EOF /app/healthcheck.js
-const http = require('http');
-const PORT = 3000;
+# Create health check file
+RUN mkdir -p /app/railway
+RUN printf 'const http = require("http");\n\
+    http.createServer(function (req, res) {\n\
+    console.log("Health check request received:", req.url);\n\
+    res.writeHead(200, {"Content-Type": "text/plain"});\n\
+    res.write("OK");\n\
+    res.end();\n\
+    }).listen(8080, "0.0.0.0");\n\
+    console.log("Health check server running at http://0.0.0.0:8080/");' > /app/railway/health.js
 
-// Create a simple server
-const server = http.createServer((req, res) => {
-  // Log all requests
-  console.log(new Date().toISOString(), 'Request received:', req.method, req.url);
-  
-  // Always respond with 200 OK to any request
-  res.writeHead(200, {'Content-Type': 'application/json'});
-  res.end(JSON.stringify({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    path: req.url
-  }));
-});
+# Create a startup script
+RUN printf '#!/bin/sh\nnode /app/railway/health.js &\necho "Health check server started"\necho "Container is running"\nwhile true; do sleep 10; done' > /app/start.sh && chmod +x /app/start.sh
 
-// Handle server errors
-server.on('error', (err) => {
-  console.error('Server error:', err);
-});
-
-// Start the server
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Health check server running on http://0.0.0.0:${PORT}`);
-});
-
-// Log any uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err);
-});
-EOF
-
-# Command to start the health check server
-CMD ["node", "/app/healthcheck.js"]
+# Command to run the container
+CMD ["/app/start.sh"]
