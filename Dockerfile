@@ -82,7 +82,7 @@ RUN if [ -f "package.json" ]; then \
 
 # Pre-install ts-node in the agent directory for direct loading
 WORKDIR /app/eliza/agent
-RUN npm install ts-node typescript @types/node
+RUN pnpm install ts-node typescript @types/node
 
 # Return to app directory
 WORKDIR /app
