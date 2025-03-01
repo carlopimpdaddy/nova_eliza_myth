@@ -63,9 +63,7 @@ RUN npm install -g pnpm@9.15.4 && \
     git \
     python3 \
     ffmpeg \
-    curl \
-    procps \
-    net-tools && \
+    curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -90,44 +88,15 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
 # Expose necessary ports
-EXPOSE 3000
+EXPOSE 3000 8000
 
 # Add environment variables to ensure proper network binding
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# Add a healthcheck to help with debugging
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3000/ || curl -f http://127.0.0.1:3000/ || exit 1
-
-# Create a startup script with more debugging
-RUN echo '#!/bin/sh\n\
-    set -e\n\
-    echo "Starting application..."\n\
-    ls -la /app\n\
-    echo "Node version: $(node -v)"\n\
-    echo "NPM version: $(npm -v)"\n\
-    echo "PNPM version: $(pnpm -v)"\n\
-    echo "Network interfaces:"\n\
-    ip addr || ifconfig || echo "No network tools available"\n\
-    echo "Environment variables:"\n\
-    env | grep -v PASSWORD | grep -v SECRET | grep -v KEY\n\
-    echo "Starting services..."\n\
-    (pnpm start > /app/server.log 2>&1 & echo $! > /app/server.pid) && \
-    (pnpm start:client > /app/client.log 2>&1 & echo $! > /app/client.pid) && \
-    sleep 5 && \
-    echo "Process status:" && \
-    ps aux | grep node && \
-    echo "Checking if services are running:" && \
-    if [ -f /app/server.pid ]; then echo "Server PID: $(cat /app/server.pid)"; else echo "Server not running"; fi && \
-    if [ -f /app/client.pid ]; then echo "Client PID: $(cat /app/client.pid)"; else echo "Client not running"; fi && \
-    echo "Server log:" && \
-    tail -n 20 /app/server.log && \
-    echo "Client log:" && \
-    tail -n 20 /app/client.log && \
-    echo "Waiting for services..." && \
-    wait\n' > /app/start.sh && \
+# Create a simple startup script
+RUN echo '#!/bin/sh\necho "Starting application..."\npnpm start & pnpm start:client\ntail -f /dev/null' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Command to start the application
-CMD ["/app/start.sh"]
+CMD ["sh", "-c", "pnpm start & pnpm start:client & tail -f /dev/null"]
