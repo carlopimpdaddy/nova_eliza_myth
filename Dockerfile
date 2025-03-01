@@ -19,12 +19,6 @@ RUN apt-get update && \
 # Create app directory for health check
 WORKDIR /app
 
-# Create package.json first for health check server
-RUN echo '{"name":"health-check","version":"1.0.0","main":"health-server.js","dependencies":{"express":"^4.18.2"}}' > package.json
-
-# Install dependencies
-RUN npm install --production
-
 # Create required directory structure
 RUN mkdir -p /app/agent/dist
 
@@ -55,14 +49,14 @@ WORKDIR /app
 # Copy the health check app from builder
 COPY --from=builder /app /app
 
-# Make sure start.sh has execution permissions in the final container
-RUN chmod +x /app/start.sh
-
 # Create eliza directory for application
 RUN mkdir -p /app/eliza
 
 # Copy the application code
 COPY . /app/eliza/
+
+# Make sure start.sh has execution permissions in the final container
+RUN chmod +x /app/start.sh
 
 # Build the ElizaOS application
 WORKDIR /app/eliza
