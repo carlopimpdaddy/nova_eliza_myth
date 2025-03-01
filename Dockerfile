@@ -108,14 +108,10 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '' >> start.sh && \
     echo '    # Start the agent and Twitter client with all possible Twitter variable names' >> start.sh && \
     echo '    echo "Starting agent with Twitter client using mapped variables..."' >> start.sh && \
-    echo '    TWITTER_API_KEY=$TWITTER_API_KEY \' >> start.sh && \
-    echo '    TWITTER_API_SECRET=$TWITTER_API_SECRET \' >> start.sh && \
-    echo '    TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN \' >> start.sh && \
-    echo '    TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET \' >> start.sh && \
-    echo '    TWITTER_API_SECRET_KEY=$TWITTER_API_SECRET_KEY \' >> start.sh && \
-    echo '    TWITTER_ACCESS_TOKEN_SECRET=$TWITTER_ACCESS_TOKEN_SECRET \' >> start.sh && \
     echo '    DEBUG=twitter* \' >> start.sh && \
-    echo '    pnpm --filter "@elizaos/agent" start --isRoot --client twitter --debug &' >> start.sh && \
+    echo '    DISPLAY_NAME="Nova 11 Wing" \' >> start.sh && \
+    echo '    NODE_OPTIONS="--no-warnings" \' >> start.sh && \
+    echo '    pnpm --filter "@elizaos/agent" start --isRoot --client twitter --autopost --interval=60 --debug &' >> start.sh && \
     echo '    AGENT_PID=$!' >> start.sh && \
     echo '    echo "Agent started with PID $AGENT_PID"' >> start.sh && \
     echo '  fi' >> start.sh && \
@@ -230,6 +226,10 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV NODE_OPTIONS="--no-warnings"
 ENV DEBUG=twitter*
+ENV TWITTER_CLIENT=true
+ENV AGENT_CLIENTS=twitter
+ENV AUTOPOST=true
+ENV AUTOPOST_INTERVAL=60
 
-# Railway will run agent/dist/index.js directly, so this is a fallback
-CMD ["node", "agent/dist/index.js"]
+# Modified CMD to explicitly include Twitter client parameters
+CMD ["sh", "-c", "NODE_OPTIONS=\"--no-warnings\" node agent/dist/index.js --client twitter --autopost --interval=60 --debug"]
