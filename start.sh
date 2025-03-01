@@ -69,9 +69,20 @@ else
     log "WARNING: Twitter credentials missing. Twitter integration will not be enabled."
 fi
 
-# Start the health check server
-log "Starting health check server on port 8080..."
-node /app/health-server.js &
+# Check if a health check server is already running
+HEALTH_SERVER_RUNNING=false
+if nc -z localhost 8080 2>/dev/null; then
+    log "Health check server is already running on port 8080, skipping health server start"
+    HEALTH_SERVER_RUNNING=true
+fi
+
+# Start the health check server only if it's not already running
+if [ "$HEALTH_SERVER_RUNNING" = false ]; then
+    log "Starting health check server on port 8080..."
+    node /app/health-server.js &
+else
+    log "Using existing health check server"
+fi
 
 log "ElizaOS services running. Container will stay alive."
 
