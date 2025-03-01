@@ -37,6 +37,15 @@ WORKDIR /app
 # Copy application code
 COPY . .
 
+# Create a simple health check server
+RUN echo 'const http = require("http"); \
+    http.createServer(function(req, res) { \
+    console.log("Request received:", req.url); \
+    res.writeHead(200, {"Content-Type": "application/json"}); \
+    res.end(JSON.stringify({status: "ok"})); \
+    }).listen(3000, "0.0.0.0"); \
+    console.log("Server listening on port 3000");' > /app/health.js
+
 # Install dependencies
 RUN pnpm install
 
@@ -56,7 +65,8 @@ RUN npm install -g pnpm@9.15.4 && \
     apt-get install -y \
     git \
     python3 \
-    ffmpeg && \
+    ffmpeg \
+    curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -75,25 +85,10 @@ COPY --from=builder /app/lerna.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
+COPY --from=builder /app/health.js ./
 
 # Expose necessary ports
-EXPOSE 3000 5173
+EXPOSE 3000
 
-# Remove the HEALTHCHECK directive
-# Create a simpler health check file
-RUN mkdir -p /app/railway
-RUN echo 'const http = require("http"); \
-    const server = http.createServer((req, res) => { \
-    console.log("Request received:", req.method, req.url); \
-    res.writeHead(200, {"Content-Type": "application/json"}); \
-    res.end(JSON.stringify({status: "ok"})); \
-    }); \
-    server.listen(3000, "0.0.0.0", () => { \
-    console.log("Health check server running on port 3000"); \
-    });' > /app/railway/health.js
-
-# Create a startup script
-RUN echo '#!/bin/sh\nset -e\necho "Starting health check server..."\nexec node /app/railway/health.js' > /app/start.sh && chmod +x /app/start.sh
-
-# Command to run the container
-CMD ["/app/start.sh"]
+# Command to run the health check server
+CMD ["node", "/app/health.js"]
