@@ -42,7 +42,7 @@ RUN echo 'const express = require("express");' > health-server.js && \
     echo '  console.log(`Health check server running on port ${port}`);' >> health-server.js && \
     echo '});' >> health-server.js
 
-# Create a combined startup script for both health check and application
+# Create a more robust startup script for both health check and application
 RUN echo '#!/bin/sh' > start.sh && \
     echo 'echo "Starting health check server..."' >> start.sh && \
     echo 'node health-server.js &' >> start.sh && \
@@ -57,9 +57,40 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo 'if [ -f "package.json" ]; then' >> start.sh && \
     echo '  # Export NODE_OPTIONS to suppress version warnings' >> start.sh && \
     echo '  export NODE_OPTIONS="--no-warnings"' >> start.sh && \
-    echo '  # Start the agent and Twitter client specifically' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '  # Debugging: Print environment variables (masked for security)' >> start.sh && \
+    echo '  echo "Checking Twitter environment variables:"' >> start.sh && \
+    echo '  if [ -n "$TWITTER_API_KEY" ]; then echo "TWITTER_API_KEY is set"; else echo "TWITTER_API_KEY is NOT set"; fi' >> start.sh && \
+    echo '  if [ -n "$TWITTER_API_SECRET" ]; then echo "TWITTER_API_SECRET is set"; else echo "TWITTER_API_SECRET is NOT set"; fi' >> start.sh && \
+    echo '  if [ -n "$TWITTER_ACCESS_TOKEN" ]; then echo "TWITTER_ACCESS_TOKEN is set"; else echo "TWITTER_ACCESS_TOKEN is NOT set"; fi' >> start.sh && \
+    echo '  if [ -n "$TWITTER_ACCESS_SECRET" ]; then echo "TWITTER_ACCESS_SECRET is set"; else echo "TWITTER_ACCESS_SECRET is NOT set"; fi' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '  # Create a .env file with Twitter config' >> start.sh && \
+    echo '  echo "Creating .env file with Twitter configuration..."' >> start.sh && \
+    echo '  echo "TWITTER_API_KEY=$TWITTER_API_KEY" > .env' >> start.sh && \
+    echo '  echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env' >> start.sh && \
+    echo '  echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env' >> start.sh && \
+    echo '  echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> .env' >> start.sh && \
+    echo '  echo "Created .env file in $(pwd)"' >> start.sh && \
+    echo '  ls -la .env' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '  # Also create .env file in the agent directory' >> start.sh && \
+    echo '  if [ -d "agent" ]; then' >> start.sh && \
+    echo '    echo "Creating .env file in agent directory..."' >> start.sh && \
+    echo '    echo "TWITTER_API_KEY=$TWITTER_API_KEY" > agent/.env' >> start.sh && \
+    echo '    echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> agent/.env' >> start.sh && \
+    echo '    echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> agent/.env' >> start.sh && \
+    echo '    echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> agent/.env' >> start.sh && \
+    echo '    echo "Created .env file in $(pwd)/agent"' >> start.sh && \
+    echo '  fi' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '  # Start the agent and Twitter client with direct environment variables' >> start.sh && \
     echo '  echo "Starting agent with Twitter client..."' >> start.sh && \
-    echo '  pnpm --filter "@elizaos/agent" start --isRoot --client twitter &' >> start.sh && \
+    echo '  TWITTER_API_KEY=$TWITTER_API_KEY \' >> start.sh && \
+    echo '  TWITTER_API_SECRET=$TWITTER_API_SECRET \' >> start.sh && \
+    echo '  TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN \' >> start.sh && \
+    echo '  TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET \' >> start.sh && \
+    echo '  pnpm --filter "@elizaos/agent" start --isRoot --client twitter --debug &' >> start.sh && \
     echo '  AGENT_PID=$!' >> start.sh && \
     echo '  echo "Agent started with PID $AGENT_PID"' >> start.sh && \
     echo 'else' >> start.sh && \
@@ -160,15 +191,6 @@ WORKDIR /app/eliza
 RUN if [ -f "package.json" ]; then \
     pnpm install && \
     NODE_OPTIONS="--no-warnings" pnpm run build || echo "Build failed, but continuing"; \
-    fi
-
-# Create a .env file with Twitter config if not present
-RUN if [ ! -f ".env" ] && [ -n "$TWITTER_API_KEY" ]; then \
-    echo "Creating .env file with Twitter configuration..." && \
-    echo "TWITTER_API_KEY=$TWITTER_API_KEY" > .env && \
-    echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env && \
-    echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env && \
-    echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> .env; \
     fi
 
 # Return to app directory
