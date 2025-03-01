@@ -46,8 +46,8 @@ RUN pnpm run build && pnpm prune --prod
 # Final runtime image
 FROM node:23.3.0-slim
 
-# Install runtime dependencies
-RUN pnpm install -g pnpm@9.15.4 && \
+# Install runtime dependencies - use npm first, then install pnpm
+RUN npm install -g pnpm@9.15.4 && \
     apt-get update && \
     apt-get install -y \
     git \
@@ -79,8 +79,8 @@ COPY --from=builder /app/agent /app/eliza/agent
 
 
 
-# Install express for the health check server
-RUN pnpm install express
+# Install ts-node using npm
+RUN npm install -g ts-node
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=10s CMD curl -f http://localhost:8080/health || exit 1
