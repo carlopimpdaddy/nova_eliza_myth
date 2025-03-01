@@ -53,6 +53,7 @@ RUN mkdir -p /app/agent/dist
 COPY start.sh /app/
 COPY health-server.js /app/
 COPY package.json /app/
+COPY index.js /app/agent/dist/
 
 # Make sure scripts are executable
 RUN chmod +x /app/start.sh
@@ -62,9 +63,6 @@ RUN mkdir -p /app/eliza
 
 # Copy the application code to eliza directory
 COPY . /app/eliza/
-
-# Copy the agent entry point file specifically
-COPY /app/agent/dist/index.js /app/agent/dist/
 
 # Install dependencies for health server
 WORKDIR /app
