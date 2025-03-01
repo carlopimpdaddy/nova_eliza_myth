@@ -38,7 +38,7 @@ RUN apt-get update && \
     build-essential \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    npm install -g pnpm@9.15.4
+    npm install -g pnpm@9.15.4 ts-node typescript
 
 # Set Python 3 as the default python
 RUN ln -sf /usr/bin/python3 /usr/bin/python
@@ -54,9 +54,10 @@ COPY health-check-package.json /app/package.json
 COPY health-server.js /app/
 COPY index.js /app/agent/dist/
 COPY start.sh /app/
+COPY eliza-start.sh /app/
 
 # Make sure scripts are executable
-RUN chmod +x /app/start.sh
+RUN chmod +x /app/start.sh /app/eliza-start.sh
 
 # Install dependencies for health server using npm (not pnpm)
 RUN npm install --production
@@ -70,9 +71,18 @@ COPY . /app/eliza/
 # Build the ElizaOS application
 WORKDIR /app/eliza
 RUN if [ -f "package.json" ]; then \
-    pnpm install && \
+    # Install required global packages for TypeScript
+    npm install -g ts-node typescript @types/node && \
+    # Install dependencies without frozen lockfile
+    pnpm install --no-frozen-lockfile && \
+    # Install Twitter plugin explicitly with workspace flag
+    pnpm add @elizaos/plugin-twitter --save -w && \
     NODE_OPTIONS="--no-warnings" pnpm run build || echo "Build failed, but continuing"; \
     fi
+
+# Pre-install ts-node in the agent directory for direct loading
+WORKDIR /app/eliza/agent
+RUN npm install ts-node typescript @types/node
 
 # Return to app directory
 WORKDIR /app

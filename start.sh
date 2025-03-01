@@ -42,14 +42,6 @@ if [ -d "/app/eliza" ]; then
     else
       echo "All Twitter credentials present, setting up Twitter integration"
 
-      # Check if the plugin package is installed
-      if [ -d "node_modules/@elizaos/plugin-twitter" ]; then
-        echo "Found @elizaos/plugin-twitter package. Using built-in Twitter plugin."
-      else
-        echo "Twitter plugin package not found. Installing dependencies..."
-        pnpm install || echo "Warning: pnpm install failed but continuing"
-      fi
-
       # Create full .env file with all possible Twitter config variables
       echo "Creating .env files with Twitter configuration..."
       cat > .env << EOF
@@ -77,18 +69,7 @@ EOF
         cp .env agent/.env
         echo "Copied .env to agent directory"
       fi
-
-      # Check and fix package.json to include the Twitter plugin
-      if [ -f "package.json" ]; then
-        echo "Checking package.json for Twitter plugin..."
-        if ! grep -q "@elizaos/plugin-twitter" "package.json"; then
-          echo "Twitter plugin not found in package.json, installing..."
-          pnpm add @elizaos/plugin-twitter || echo "Warning: Failed to install Twitter plugin package"
-        else
-          echo "Twitter plugin already in package.json"
-        fi
-      fi
-
+      
       # Set Twitter environment variables directly for the process
       export ENABLE_PLUGINS=twitter
       export PLUGINS=twitter
@@ -100,11 +81,19 @@ EOF
       export LOG_LEVEL=debug
       export DISPLAY_NAME="Nova 11 Wing"
 
-      # Start the agent with Twitter plugin activated with extra debug flags
-      echo "Starting ElizaOS with Twitter plugin..."
-      NODE_OPTIONS="--no-warnings" pnpm start --isRoot --plugin twitter --autopost --debug &
-      AGENT_PID=$!
-      echo "ElizaOS started with PID $AGENT_PID"
+      # Start the agent with Twitter plugin activated with our custom launcher script
+      echo "Starting ElizaOS with Twitter plugin using custom launcher..."
+      if [ -f "/app/eliza-start.sh" ]; then
+        /app/eliza-start.sh &
+        AGENT_PID=$!
+        echo "ElizaOS started with PID $AGENT_PID"
+      else
+        echo "Custom launcher not found, falling back to direct execution"
+        cd /app/eliza/agent
+        npx ts-node src/index.ts --isRoot --plugin twitter --autopost --debug &
+        AGENT_PID=$!
+        echo "ElizaOS started with PID $AGENT_PID via fallback method"
+      fi
     fi
   else
     echo "No package.json found in ElizaOS directory"
