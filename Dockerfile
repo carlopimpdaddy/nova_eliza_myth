@@ -62,7 +62,10 @@ RUN npm install -g pnpm@9.15.4 && \
     apt-get install -y \
     git \
     python3 \
-    ffmpeg && \
+    ffmpeg \
+    curl \
+    procps \
+    net-tools && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -89,12 +92,41 @@ COPY --from=builder /app/characters ./characters
 # Expose necessary ports
 EXPOSE 3000
 
-# Add a healthcheck to help with debugging
-HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:3000/ || exit 1
+# Add environment variables to ensure proper network binding
+ENV HOST=0.0.0.0
+ENV PORT=3000
 
-# Create a startup script
-RUN echo '#!/bin/sh\nset -e\necho "Starting application..."\nls -la /app\necho "Node version: $(node -v)"\necho "NPM version: $(npm -v)"\necho "PNPM version: $(pnpm -v)"\necho "Starting services..."\npnpm start & pnpm start:client\n' > /app/start.sh && \
+# Add a healthcheck to help with debugging
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3000/ || curl -f http://127.0.0.1:3000/ || exit 1
+
+# Create a startup script with more debugging
+RUN echo '#!/bin/sh\n\
+    set -e\n\
+    echo "Starting application..."\n\
+    ls -la /app\n\
+    echo "Node version: $(node -v)"\n\
+    echo "NPM version: $(npm -v)"\n\
+    echo "PNPM version: $(pnpm -v)"\n\
+    echo "Network interfaces:"\n\
+    ip addr || ifconfig || echo "No network tools available"\n\
+    echo "Environment variables:"\n\
+    env | grep -v PASSWORD | grep -v SECRET | grep -v KEY\n\
+    echo "Starting services..."\n\
+    (pnpm start > /app/server.log 2>&1 & echo $! > /app/server.pid) && \
+    (pnpm start:client > /app/client.log 2>&1 & echo $! > /app/client.pid) && \
+    sleep 5 && \
+    echo "Process status:" && \
+    ps aux | grep node && \
+    echo "Checking if services are running:" && \
+    if [ -f /app/server.pid ]; then echo "Server PID: $(cat /app/server.pid)"; else echo "Server not running"; fi && \
+    if [ -f /app/client.pid ]; then echo "Client PID: $(cat /app/client.pid)"; else echo "Client not running"; fi && \
+    echo "Server log:" && \
+    tail -n 20 /app/server.log && \
+    echo "Client log:" && \
+    tail -n 20 /app/client.log && \
+    echo "Waiting for services..." && \
+    wait\n' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Command to start the application
