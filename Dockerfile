@@ -46,18 +46,29 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python
 # Create app directory
 WORKDIR /app
 
-# Copy the health check app from builder
-COPY --from=builder /app /app
+# Create required directories
+RUN mkdir -p /app/agent/dist
+
+# Copy specific files first to ensure they exist
+COPY start.sh /app/
+COPY health-server.js /app/
+COPY package.json /app/
+
+# Make sure scripts are executable
+RUN chmod +x /app/start.sh
 
 # Create eliza directory for application
 RUN mkdir -p /app/eliza
 
-# Copy the application code
+# Copy the application code to eliza directory
 COPY . /app/eliza/
 
-# Copy start.sh to the correct location and make it executable
-COPY start.sh /app/
-RUN chmod +x /app/start.sh
+# Copy the agent entry point file specifically
+COPY /app/agent/dist/index.js /app/agent/dist/
+
+# Install dependencies for health server
+WORKDIR /app
+RUN npm install --production
 
 # Build the ElizaOS application
 WORKDIR /app/eliza
