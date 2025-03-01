@@ -88,11 +88,15 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '    echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env' >> start.sh && \
     echo '    echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env' >> start.sh && \
     echo '    echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> .env' >> start.sh && \
-    echo '    # Also add the original variable names' >> start.sh && \
-    echo '    echo "TWITTER_API_SECRET_KEY=$TWITTER_API_SECRET_KEY" >> .env' >> start.sh && \
-    echo '    echo "TWITTER_ACCESS_TOKEN_SECRET=$TWITTER_ACCESS_TOKEN_SECRET" >> .env' >> start.sh && \
+    echo '    echo "TWITTER_CLIENT=true" >> .env' >> start.sh && \
+    echo '    echo "TWITTER_CLIENT_ENABLED=true" >> .env' >> start.sh && \
+    echo '    echo "ENABLE_TWITTER=true" >> .env' >> start.sh && \
+    echo '    echo "CLIENT_TYPES=twitter" >> .env' >> start.sh && \
+    echo '    echo "AGENT_CLIENTS=twitter" >> .env' >> start.sh && \
+    echo '    echo "AUTOPOST=true" >> .env' >> start.sh && \
+    echo '    echo "AUTOPOST_INTERVAL=60" >> .env' >> start.sh && \
+    echo '    echo "DEBUG=twitter*" >> .env' >> start.sh && \
     echo '    echo "Created .env file in $(pwd)"' >> start.sh && \
-    echo '    cat .env' >> start.sh && \
     echo '' >> start.sh && \
     echo '    # Also create .env file in the agent directory with all variable variations' >> start.sh && \
     echo '    if [ -d "agent" ]; then' >> start.sh && \
@@ -101,60 +105,32 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '      echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> agent/.env' >> start.sh && \
     echo '      echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> agent/.env' >> start.sh && \
     echo '      echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> agent/.env' >> start.sh && \
-    echo '      echo "TWITTER_API_SECRET_KEY=$TWITTER_API_SECRET_KEY" >> agent/.env' >> start.sh && \
-    echo '      echo "TWITTER_ACCESS_TOKEN_SECRET=$TWITTER_ACCESS_TOKEN_SECRET" >> agent/.env' >> start.sh && \
+    echo '      echo "TWITTER_CLIENT=true" >> agent/.env' >> start.sh && \
+    echo '      echo "TWITTER_CLIENT_ENABLED=true" >> agent/.env' >> start.sh && \
+    echo '      echo "ENABLE_TWITTER=true" >> agent/.env' >> start.sh && \
+    echo '      echo "CLIENT_TYPES=twitter" >> agent/.env' >> start.sh && \
+    echo '      echo "AGENT_CLIENTS=twitter" >> agent/.env' >> start.sh && \
+    echo '      echo "AUTOPOST=true" >> agent/.env' >> start.sh && \
+    echo '      echo "AUTOPOST_INTERVAL=60" >> agent/.env' >> start.sh && \
+    echo '      echo "DEBUG=twitter*" >> agent/.env' >> start.sh && \
     echo '      echo "Created .env file in $(pwd)/agent"' >> start.sh && \
     echo '    fi' >> start.sh && \
     echo '' >> start.sh && \
-    echo '    # Start the agent with all Twitter environment variables and debug flags' >> start.sh && \
-    echo '    echo "Starting agent with Twitter client using mapped variables..."' >> start.sh && \
-    echo '    # Print Twitter credential check' >> start.sh && \
-    echo '    echo "TWITTER CREDENTIALS VERIFICATION:"' >> start.sh && \
-    echo '    echo "TWITTER_API_KEY: $(if [ -n \"$TWITTER_API_KEY\" ]; then echo \"SET\"; else echo \"MISSING\"; fi)"' >> start.sh && \
-    echo '    echo "TWITTER_API_SECRET: $(if [ -n \"$TWITTER_API_SECRET\" ]; then echo \"SET\"; else echo \"MISSING\"; fi)"' >> start.sh && \
-    echo '    echo "TWITTER_ACCESS_TOKEN: $(if [ -n \"$TWITTER_ACCESS_TOKEN\" ]; then echo \"SET\"; else echo \"MISSING\"; fi)"' >> start.sh && \
-    echo '    echo "TWITTER_ACCESS_SECRET: $(if [ -n \"$TWITTER_ACCESS_SECRET\" ]; then echo \"SET\"; else echo \"MISSING\"; fi)"' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '    # Add these settings to explicitly activate Twitter client' >> start.sh && \
+    echo '    # Run the agent with Twitter client enabled' >> start.sh && \
+    echo '    echo "Starting ElizaOS with Twitter client..."' >> start.sh && \
+    echo '    cd agent' >> start.sh && \
     echo '    export TWITTER_CLIENT=true' >> start.sh && \
     echo '    export TWITTER_CLIENT_ENABLED=true' >> start.sh && \
     echo '    export ENABLE_TWITTER=true' >> start.sh && \
     echo '    export CLIENT_TYPES=twitter' >> start.sh && \
-    echo '    export DEBUG_TWITTER=true' >> start.sh && \
-    echo '    export DISPLAY_NAME="Nova 11 Wing"' >> start.sh && \
     echo '    export AGENT_CLIENTS=twitter' >> start.sh && \
     echo '    export AUTOPOST=true' >> start.sh && \
     echo '    export AUTOPOST_INTERVAL=60' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '    # Start the agent with all Twitter environment variables and debug flags' >> start.sh && \
-    echo '    DEBUG=twitter* \' >> start.sh && \
-    echo '    TWITTER_CLIENT=true \' >> start.sh && \
-    echo '    TWITTER_CLIENT_ENABLED=true \' >> start.sh && \
-    echo '    ENABLE_TWITTER=true \' >> start.sh && \
-    echo '    CLIENT_TYPES=twitter \' >> start.sh && \
-    echo '    AGENT_CLIENTS=twitter \' >> start.sh && \
-    echo '    AUTOPOST=true \' >> start.sh && \
-    echo '    AUTOPOST_INTERVAL=60 \' >> start.sh && \
-    echo '    DISPLAY_NAME="Nova 11 Wing" \' >> start.sh && \
-    echo '    NODE_OPTIONS="--no-warnings" \' >> start.sh && \
-    echo '    pnpm --filter "@elizaos/agent" start --isRoot --client twitter --autopost --interval=60 &' >> start.sh && \
+    echo '    export DISPLAY_NAME="Nova 11 Wing"' >> start.sh && \
+    echo '    export DEBUG=twitter*' >> start.sh && \
+    echo '    NODE_OPTIONS="--no-warnings" pnpm start --isRoot --client twitter --autopost --interval=60 &' >> start.sh && \
     echo '    AGENT_PID=$!' >> start.sh && \
-    echo '    echo "Agent started with PID $AGENT_PID"' >> start.sh && \
-    echo '    # Wait a moment for the agent to initialize' >> start.sh && \
-    echo '    echo "Waiting for agent to initialize..."' >> start.sh && \
-    echo '    sleep 5' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '    # Directly run the Twitter client initializer to force client activation' >> start.sh && \
-    echo '    echo "Running Twitter client direct initializer..."' >> start.sh && \
-    echo '    node /app/twitter-initializer.js &' >> start.sh && \
-    echo '    TWITTER_INIT_PID=$!' >> start.sh && \
-    echo '    echo "Twitter initializer started with PID $TWITTER_INIT_PID"' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '    # Also try direct client start command' >> start.sh && \
-    echo '    echo "Also trying direct Twitter client start command..."' >> start.sh && \
-    echo '    cd /app/eliza && DEBUG=twitter* TWITTER_CLIENT=true CLIENT_TYPES=twitter pnpm --filter @elizaos/agent start:client twitter --autopost --interval=60 &' >> start.sh && \
-    echo '    DIRECT_CLIENT_PID=$!' >> start.sh && \
-    echo '    echo "Direct Twitter client command started with PID $DIRECT_CLIENT_PID"' >> start.sh && \
+    echo '    echo "ElizaOS started with PID $AGENT_PID"' >> start.sh && \
     echo '  fi' >> start.sh && \
     echo 'else' >> start.sh && \
     echo '  echo "ElizaOS application not found. Health check server will continue running."' >> start.sh && \
@@ -166,149 +142,7 @@ RUN echo '#!/bin/sh' > start.sh && \
     chmod +x start.sh
 
 # Make agent directory that Railway is looking for 
-# and create an index.js that runs our start script
-RUN mkdir -p /app/agent/dist && \
-    echo 'console.log("Agent starting up");' > /app/agent/dist/index.js && \
-    echo 'const { spawn } = require("child_process");' >> /app/agent/dist/index.js && \
-    echo '' >> /app/agent/dist/index.js && \
-    echo '// Set Twitter environment variables explicitly' >> /app/agent/dist/index.js && \
-    echo 'process.env.TWITTER_CLIENT = "true";' >> /app/agent/dist/index.js && \
-    echo 'process.env.TWITTER_CLIENT_ENABLED = "true";' >> /app/agent/dist/index.js && \
-    echo 'process.env.ENABLE_TWITTER = "true";' >> /app/agent/dist/index.js && \
-    echo 'process.env.CLIENT_TYPES = "twitter";' >> /app/agent/dist/index.js && \
-    echo 'process.env.AGENT_CLIENTS = "twitter";' >> /app/agent/dist/index.js && \
-    echo 'process.env.AUTOPOST = "true";' >> /app/agent/dist/index.js && \
-    echo 'process.env.AUTOPOST_INTERVAL = "60";' >> /app/agent/dist/index.js && \
-    echo 'console.log("Twitter environment variables set directly in index.js");' >> /app/agent/dist/index.js && \
-    echo '' >> /app/agent/dist/index.js && \
-    echo 'try {' >> /app/agent/dist/index.js && \
-    echo '  console.log("Starting ElizaOS with health check and Twitter client...");' >> /app/agent/dist/index.js && \
-    echo '  // Try to load helper first' >> /app/agent/dist/index.js && \
-    echo '  try {' >> /app/agent/dist/index.js && \
-    echo '    const twitterHelper = require("../../twitter-client.js");' >> /app/agent/dist/index.js && \
-    echo '    console.log("Twitter helper loaded, activating Twitter client...");' >> /app/agent/dist/index.js && \
-    echo '    twitterHelper.activateTwitter();' >> /app/agent/dist/index.js && \
-    echo '  } catch (twitterError) {' >> /app/agent/dist/index.js && \
-    echo '    console.log("Twitter helper not loaded, continuing:", twitterError.message);' >> /app/agent/dist/index.js && \
-    echo '  }' >> /app/agent/dist/index.js && \
-    echo '' >> /app/agent/dist/index.js && \
-    echo '  // Start the main process' >> /app/agent/dist/index.js && \
-    echo '  const startArgs = ["--isRoot", "--client", "twitter", "--autopost", "--interval=60", "--debug"];' >> /app/agent/dist/index.js && \
-    echo '  console.log("Launching ElizaOS with args:", startArgs.join(" "));' >> /app/agent/dist/index.js && \
-    echo '  const startProcess = spawn("/app/start.sh", [], { stdio: "inherit", shell: true, env: { ...process.env, TWITTER_CLIENT: "true", AGENT_CLIENTS: "twitter" } });' >> /app/agent/dist/index.js && \
-    echo '  startProcess.on("error", (err) => {' >> /app/agent/dist/index.js && \
-    echo '    console.error("Failed to start application:", err);' >> /app/agent/dist/index.js && \
-    echo '    // Start health check directly if shell script fails' >> /app/agent/dist/index.js && \
-    echo '    require("../../health-server");' >> /app/agent/dist/index.js && \
-    echo '  });' >> /app/agent/dist/index.js && \
-    echo '} catch (error) {' >> /app/agent/dist/index.js && \
-    echo '  console.error("Error in startup:", error);' >> /app/agent/dist/index.js && \
-    echo '  // Fallback to just health check' >> /app/agent/dist/index.js && \
-    echo '  require("../../health-server");' >> /app/agent/dist/index.js && \
-    echo '}' >> /app/agent/dist/index.js && \
-    echo '' >> /app/agent/dist/index.js && \
-    echo 'module.exports = { start: () => console.log("Agent started with Twitter client") };' >> /app/agent/dist/index.js
-
-# Create helper script to explicitly activate Twitter client
-RUN echo '// Helper script to explicitly activate Twitter client' > /app/twitter-client.js && \
-    echo 'console.log("Twitter Client Helper Starting...");' >> /app/twitter-client.js && \
-    echo 'process.env.TWITTER_CLIENT = "true";' >> /app/twitter-client.js && \
-    echo 'process.env.TWITTER_CLIENT_ENABLED = "true";' >> /app/twitter-client.js && \
-    echo 'process.env.ENABLE_TWITTER = "true";' >> /app/twitter-client.js && \
-    echo 'process.env.CLIENT_TYPES = "twitter";' >> /app/twitter-client.js && \
-    echo 'process.env.AGENT_CLIENTS = "twitter";' >> /app/twitter-client.js && \
-    echo 'process.env.AUTOPOST = "true";' >> /app/twitter-client.js && \
-    echo 'process.env.AUTOPOST_INTERVAL = "60";' >> /app/twitter-client.js && \
-    echo 'console.log("Twitter environment variables set in helper");' >> /app/twitter-client.js && \
-    echo '' >> /app/twitter-client.js && \
-    echo '// Check if Twitter credentials are available' >> /app/twitter-client.js && \
-    echo 'console.log("Checking Twitter credentials:");' >> /app/twitter-client.js && \
-    echo 'console.log(`TWITTER_API_KEY: ${process.env.TWITTER_API_KEY ? "SET" : "MISSING"}`);' >> /app/twitter-client.js && \
-    echo 'console.log(`TWITTER_API_SECRET: ${process.env.TWITTER_API_SECRET ? "SET" : "MISSING"}`);' >> /app/twitter-client.js && \
-    echo 'console.log(`TWITTER_ACCESS_TOKEN: ${process.env.TWITTER_ACCESS_TOKEN ? "SET" : "MISSING"}`);' >> /app/twitter-client.js && \
-    echo 'console.log(`TWITTER_ACCESS_SECRET: ${process.env.TWITTER_ACCESS_SECRET ? "SET" : "MISSING"}`);' >> /app/twitter-client.js && \
-    echo '' >> /app/twitter-client.js && \
-    echo '// Export helper function' >> /app/twitter-client.js && \
-    echo 'module.exports = {' >> /app/twitter-client.js && \
-    echo '  activateTwitter: () => {' >> /app/twitter-client.js && \
-    echo '    console.log("Twitter client activation requested");' >> /app/twitter-client.js && \
-    echo '    return true;' >> /app/twitter-client.js && \
-    echo '  }' >> /app/twitter-client.js && \
-    echo '};' >> /app/twitter-client.js
-
-# Create a direct Twitter client initializer
-RUN echo '// Direct Twitter client initializer' > /app/twitter-initializer.js && \
-    echo 'console.log("Starting DIRECT Twitter client initialization...");' >> /app/twitter-initializer.js && \
-    echo 'const fs = require("fs");' >> /app/twitter-initializer.js && \
-    echo 'const path = require("path");' >> /app/twitter-initializer.js && \
-    echo 'const { spawn, exec } = require("child_process");' >> /app/twitter-initializer.js && \
-    echo '' >> /app/twitter-initializer.js && \
-    echo '// Set all required environment variables' >> /app/twitter-initializer.js && \
-    echo 'const twitterEnv = {' >> /app/twitter-initializer.js && \
-    echo '  TWITTER_CLIENT: "true",' >> /app/twitter-initializer.js && \
-    echo '  TWITTER_CLIENT_ENABLED: "true",' >> /app/twitter-initializer.js && \
-    echo '  ENABLE_TWITTER: "true",' >> /app/twitter-initializer.js && \
-    echo '  CLIENT_TYPES: "twitter",' >> /app/twitter-initializer.js && \
-    echo '  AGENT_CLIENTS: "twitter",' >> /app/twitter-initializer.js && \
-    echo '  AUTOPOST: "true",' >> /app/twitter-initializer.js && \
-    echo '  AUTOPOST_INTERVAL: "60",' >> /app/twitter-initializer.js && \
-    echo '  DEBUG: "twitter*",' >> /app/twitter-initializer.js && \
-    echo '  DEBUG_TWITTER: "true",' >> /app/twitter-initializer.js && \
-    echo '  DISPLAY_NAME: "Nova 11 Wing",' >> /app/twitter-initializer.js && \
-    echo '  NODE_OPTIONS: "--no-warnings"' >> /app/twitter-initializer.js && \
-    echo '};' >> /app/twitter-initializer.js && \
-    echo '' >> /app/twitter-initializer.js && \
-    echo '// Set all environment variables' >> /app/twitter-initializer.js && \
-    echo 'Object.keys(twitterEnv).forEach(key => {' >> /app/twitter-initializer.js && \
-    echo '  process.env[key] = twitterEnv[key];' >> /app/twitter-initializer.js && \
-    echo '});' >> /app/twitter-initializer.js && \
-    echo '' >> /app/twitter-initializer.js && \
-    echo '// Log Twitter credential environment variables' >> /app/twitter-initializer.js && \
-    echo 'console.log("Twitter credentials in direct initializer:");' >> /app/twitter-initializer.js && \
-    echo 'console.log(`TWITTER_API_KEY: ${process.env.TWITTER_API_KEY ? "SET" : "MISSING"}`);' >> /app/twitter-initializer.js && \
-    echo 'console.log(`TWITTER_API_SECRET: ${process.env.TWITTER_API_SECRET ? "SET" : "MISSING"}`);' >> /app/twitter-initializer.js && \
-    echo 'console.log(`TWITTER_ACCESS_TOKEN: ${process.env.TWITTER_ACCESS_TOKEN ? "SET" : "MISSING"}`);' >> /app/twitter-initializer.js && \
-    echo 'console.log(`TWITTER_ACCESS_SECRET: ${process.env.TWITTER_ACCESS_SECRET ? "SET" : "MISSING"}`);' >> /app/twitter-initializer.js && \
-    echo '' >> /app/twitter-initializer.js && \
-    echo '// Create the client directories if needed' >> /app/twitter-initializer.js && \
-    echo 'const clientDir = path.join("/app/eliza/agent/src/clients");' >> /app/twitter-initializer.js && \
-    echo 'const twitterDir = path.join(clientDir, "twitter");' >> /app/twitter-initializer.js && \
-    echo '' >> /app/twitter-initializer.js && \
-    echo '// Check if the Twitter client is available' >> /app/twitter-initializer.js && \
-    echo 'if (fs.existsSync(twitterDir)) {' >> /app/twitter-initializer.js && \
-    echo '  console.log("Found Twitter client directory at:", twitterDir);' >> /app/twitter-initializer.js && \
-    echo '  // List files in the Twitter client directory' >> /app/twitter-initializer.js && \
-    echo '  const files = fs.readdirSync(twitterDir);' >> /app/twitter-initializer.js && \
-    echo '  console.log("Files in Twitter client directory:", files);' >> /app/twitter-initializer.js && \
-    echo '} else {' >> /app/twitter-initializer.js && \
-    echo '  console.log("Twitter client directory not found at:", twitterDir);' >> /app/twitter-initializer.js && \
-    echo '}' >> /app/twitter-initializer.js && \
-    echo '' >> /app/twitter-initializer.js && \
-    echo '// Direct activation function' >> /app/twitter-initializer.js && \
-    echo 'function activateTwitterClient() {' >> /app/twitter-initializer.js && \
-    echo '  console.log("Directly activating Twitter client...");' >> /app/twitter-initializer.js && \
-    echo '  // Try to execute a direct pnpm client command to force Twitter client initialization' >> /app/twitter-initializer.js && \
-    echo '  try {' >> /app/twitter-initializer.js && \
-    echo '    console.log("Running direct Twitter client initialization command...");' >> /app/twitter-initializer.js && \
-    echo '    const cmd = "cd /app/eliza && pnpm --filter @elizaos/agent start:client twitter --autopost --interval=60";' >> /app/twitter-initializer.js && \
-    echo '    exec(cmd, { env: { ...process.env, ...twitterEnv } }, (error, stdout, stderr) => {' >> /app/twitter-initializer.js && \
-    echo '      if (error) {' >> /app/twitter-initializer.js && \
-    echo '        console.error("Twitter client initialization failed:", error);' >> /app/twitter-initializer.js && \
-    echo '        console.error(stderr);' >> /app/twitter-initializer.js && \
-    echo '      } else {' >> /app/twitter-initializer.js && \
-    echo '        console.log("Twitter client initialization output:", stdout);' >> /app/twitter-initializer.js && \
-    echo '      }' >> /app/twitter-initializer.js && \
-    echo '    });' >> /app/twitter-initializer.js && \
-    echo '  } catch (error) {' >> /app/twitter-initializer.js && \
-    echo '    console.error("Error in Twitter client direct activation:", error);' >> /app/twitter-initializer.js && \
-    echo '  }' >> /app/twitter-initializer.js && \
-    echo '}' >> /app/twitter-initializer.js && \
-    echo '' >> /app/twitter-initializer.js && \
-    echo '// Call the activation function' >> /app/twitter-initializer.js && \
-    echo 'activateTwitterClient();' >> /app/twitter-initializer.js && \
-    echo '' >> /app/twitter-initializer.js && \
-    echo 'module.exports = { activate: activateTwitterClient };' >> /app/twitter-initializer.js && \
-    chmod +x /app/twitter-initializer.js
+RUN mkdir -p /app/agent/dist
 
 # Final image
 FROM node:20-slim
@@ -343,40 +177,196 @@ RUN mkdir -p /app/eliza
 # Copy the application code
 COPY . /app/eliza/
 
-# Set up types.ts if it's missing
-RUN if [ ! -f "/app/eliza/agent/src/types.ts" ]; then \
-    mkdir -p /app/eliza/agent/src && \
-    echo 'export type ModelProviderName = "grok" | "openai" | "anthropic" | "perplexity" | "gemini";' > /app/eliza/agent/src/types.ts && \
-    echo 'export interface Character {' >> /app/eliza/agent/src/types.ts && \
-    echo '  name: string;' >> /app/eliza/agent/src/types.ts && \
-    echo '  database: any;' >> /app/eliza/agent/src/types.ts && \
-    echo '  username: string;' >> /app/eliza/agent/src/types.ts && \
-    echo '  screenName: string;' >> /app/eliza/agent/src/types.ts && \
-    echo '  plugins: any[];' >> /app/eliza/agent/src/types.ts && \
-    echo '  clients: string[];' >> /app/eliza/agent/src/types.ts && \
-    echo '  modelProvider: ModelProviderName;' >> /app/eliza/agent/src/types.ts && \
-    echo '  settings: any;' >> /app/eliza/agent/src/types.ts && \
-    echo '  system: string;' >> /app/eliza/agent/src/types.ts && \
-    echo '  bio: string[];' >> /app/eliza/agent/src/types.ts && \
-    echo '  lore: string[];' >> /app/eliza/agent/src/types.ts && \
-    echo '  messageExamples: any[][];' >> /app/eliza/agent/src/types.ts && \
-    echo '  postExamples: string[];' >> /app/eliza/agent/src/types.ts && \
-    echo '  topics: string[];' >> /app/eliza/agent/src/types.ts && \
-    echo '  style: {' >> /app/eliza/agent/src/types.ts && \
-    echo '    all: string[];' >> /app/eliza/agent/src/types.ts && \
-    echo '    chat: string[];' >> /app/eliza/agent/src/types.ts && \
-    echo '    post: string[];' >> /app/eliza/agent/src/types.ts && \
-    echo '  };' >> /app/eliza/agent/src/types.ts && \
-    echo '  adjectives: string[];' >> /app/eliza/agent/src/types.ts && \
-    echo '  extends: any[];' >> /app/eliza/agent/src/types.ts && \
-    echo '}' >> /app/eliza/agent/src/types.ts; \
-    fi
-
-# Build the ElizaOS application
+# Build the ElizaOS application with Twitter client support
 WORKDIR /app/eliza
 RUN if [ -f "package.json" ]; then \
     pnpm install && \
     NODE_OPTIONS="--no-warnings" pnpm run build || echo "Build failed, but continuing"; \
+    fi
+
+# Create directory structure for Twitter client
+RUN mkdir -p /app/eliza/agent/src/clients/twitter
+
+# Create Twitter client module
+RUN echo '// ElizaOS Twitter Client Module' > /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'import { TwitterApi } from "twitter-api-v2";' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'import type { Character } from "../../types";' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'import * as fs from "fs";' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'import * as path from "path";' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'const MINUTE_MS = 60 * 1000;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'const DEFAULT_INTERVAL = 60; // minutes' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'let twitterClient: TwitterApi | null = null;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'let postInterval: NodeJS.Timeout | null = null;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'let characterData: Character | null = null;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'let generateTweet: (() => Promise<string>) | null = null;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '// Function to check for missing Twitter credentials and log them' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'function checkCredentials() {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  const apiKey = process.env.TWITTER_API_KEY;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  const apiSecret = process.env.TWITTER_API_SECRET;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  const accessToken = process.env.TWITTER_ACCESS_TOKEN;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  const accessSecret = process.env.TWITTER_ACCESS_SECRET;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  console.log("Twitter credentials: {", ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    "apiKey:", apiKey ? "SET" : "MISSING", ', ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    "apiSecret:", apiSecret ? "SET" : "MISSING", ', ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    "accessToken:", accessToken ? "SET" : "MISSING", ', ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    "accessSecret:", accessSecret ? "SET" : "MISSING", ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  "}");' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (!apiKey || !apiSecret || !accessToken || !accessSecret) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return false;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  return true;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '}' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '// Initialize the Twitter client with credentials' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'function initializeTwitterClient(): TwitterApi | null {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  try {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    if (!checkCredentials()) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '      console.error("Missing Twitter credentials, cannot initialize Twitter client");' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '      return null;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    const client = new TwitterApi({' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '      appKey: process.env.TWITTER_API_KEY!,' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '      appSecret: process.env.TWITTER_API_SECRET!,' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '      accessToken: process.env.TWITTER_ACCESS_TOKEN!,' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '      accessSecret: process.env.TWITTER_ACCESS_SECRET!,' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    });' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return client;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  } catch (error) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    console.error("Error initializing Twitter client:", error);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return null;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '}' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '// Set up auto-posting at the specified interval' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'function setupAutopost(interval = DEFAULT_INTERVAL) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (!twitterClient || !generateTweet) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    console.error("Cannot set up autoposting without Twitter client and tweet generator");' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  console.log(`Setting up Twitter autopost every ${interval} minutes`);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  // Clear any existing interval' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (postInterval) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    clearInterval(postInterval);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  // Set up the interval for posting' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  postInterval = setInterval(async () => {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    try {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '      await postTweet();' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    } catch (error) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '      console.error("Error in autopost:", error);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }, interval * MINUTE_MS);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '}' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '// Generate a tweet based on the character data' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'async function generateTweetContent(): Promise<string> {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (!characterData) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return "Just another day in the life of an AI.";' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  // Use the character\'s post examples if available' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (characterData.postExamples && characterData.postExamples.length > 0) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    const randomIndex = Math.floor(Math.random() * characterData.postExamples.length);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return characterData.postExamples[randomIndex];' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  // If we have a custom generator function, use it' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (generateTweet) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return generateTweet();' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  // Fallback to a generic tweet' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  const defaultTweets = [' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    "Just pondering the vastness of space today. The universe is an endless frontier of possibility.",', ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    "Some days I wonder what lies beyond the stars we can see. What mysteries await us?",', ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    "Looking at the night sky and feeling both small and connected to something greater.",', ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    "The cosmos is within us. We\'re made of star stuff.",', ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    "Exploring new ideas today. What are you curious about?",', ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  ];' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  const randomIndex = Math.floor(Math.random() * defaultTweets.length);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  return defaultTweets[randomIndex];' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '}' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '// Post a tweet using the Twitter client' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'async function postTweet() {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (!twitterClient) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    console.error("Twitter client not initialized, cannot post tweet");' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  try {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    const tweetText = await generateTweetContent();' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    console.log("=================================================");' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    console.log("ELIZAOS TWITTER CLIENT - POSTING TWEET:");' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    console.log(tweetText);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    console.log("=================================================");' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    const response = await twitterClient.v2.tweet(tweetText);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    console.log("Tweet posted successfully:", response.data.id);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return response.data.id;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  } catch (error) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    console.error("Error posting tweet:", error);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return null;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '}' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '// Initialize the client module with a character' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'export function initialize(character: Character, options: any = {}) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  console.log(`ElizaOS Twitter client initializing for character: ${character.name}`);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  characterData = character;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  // Initialize Twitter client' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  twitterClient = initializeTwitterClient();' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (!twitterClient) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    console.error("Failed to initialize Twitter client");' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    return { initialized: false };' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  // Check for a custom tweet generator function' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (options.generateTweet) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    generateTweet = options.generateTweet;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  // Set up autoposting if requested' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  const autopost = options.autopost || process.env.AUTOPOST === "true";' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  let interval = DEFAULT_INTERVAL;' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  ' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  // Set interval from options or environment variable' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (options.interval) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    interval = parseInt(options.interval, 10);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  } else if (process.env.AUTOPOST_INTERVAL) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    interval = parseInt(process.env.AUTOPOST_INTERVAL, 10);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  if (autopost) {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '    setupAutopost(interval);' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  }' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  console.log("ElizaOS Twitter client initialized and ready");' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  return { initialized: true };' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '}' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '// Module exports' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo 'export default {' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  initialize,' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '  postTweet,' >> /app/eliza/agent/src/clients/twitter/index.ts && \
+    echo '};' >> /app/eliza/agent/src/clients/twitter/index.ts
+
+# Add Twitter API dependency to package.json
+RUN cd /app/eliza/agent && \
+    if [ -f "package.json" ]; then \
+    sed -i 's/"dependencies": {/"dependencies": {\n    "twitter-api-v2": "^1.15.0",/g' package.json && \
+    pnpm install; \
     fi
 
 # Return to app directory
@@ -402,50 +392,5 @@ ENV CLIENT_TYPES=twitter
 ENV DEBUG_TWITTER=true
 ENV DISPLAY_NAME="Nova 11 Wing"
 
-# Create a dedicated entry point script
-RUN echo '#!/bin/sh' > /app/entry.sh && \
-    echo 'echo "Starting ElizaOS with explicit Twitter client..."' >> /app/entry.sh && \
-    echo 'export NODE_OPTIONS="--no-warnings"' >> /app/entry.sh && \
-    echo 'export DEBUG=twitter*' >> /app/entry.sh && \
-    echo 'export TWITTER_CLIENT=true' >> /app/entry.sh && \
-    echo 'export TWITTER_CLIENT_ENABLED=true' >> /app/entry.sh && \
-    echo 'export ENABLE_TWITTER=true' >> /app/entry.sh && \
-    echo 'export CLIENT_TYPES=twitter' >> /app/entry.sh && \
-    echo 'export AGENT_CLIENTS=twitter' >> /app/entry.sh && \
-    echo 'export AUTOPOST=true' >> /app/entry.sh && \
-    echo 'export AUTOPOST_INTERVAL=60' >> /app/entry.sh && \
-    echo 'export DISPLAY_NAME="Nova 11 Wing"' >> /app/entry.sh && \
-    echo '' >> /app/entry.sh && \
-    echo '# Start health check server' >> /app/entry.sh && \
-    echo 'node /app/health-server.js &' >> /app/entry.sh && \
-    echo 'HEALTH_PID=$!' >> /app/entry.sh && \
-    echo 'echo "Health check server started with PID $HEALTH_PID"' >> /app/entry.sh && \
-    echo '' >> /app/entry.sh && \
-    echo '# Wait for health check to initialize' >> /app/entry.sh && \
-    echo 'sleep 2' >> /app/entry.sh && \
-    echo '' >> /app/entry.sh && \
-    echo '# Try different approaches to start the Twitter client' >> /app/entry.sh && \
-    echo 'echo "Approach 1: Starting agent with Twitter client..."' >> /app/entry.sh && \
-    echo 'cd /app/eliza && DEBUG=twitter* TWITTER_CLIENT=true CLIENT_TYPES=twitter AGENT_CLIENTS=twitter AUTOPOST=true pnpm --filter "@elizaos/agent" start --isRoot --client twitter --autopost --interval=60 --debug &' >> /app/entry.sh && \
-    echo 'AGENT_PID=$!' >> /app/entry.sh && \
-    echo '' >> /app/entry.sh && \
-    echo '# Wait for agent to initialize' >> /app/entry.sh && \
-    echo 'sleep 5' >> /app/entry.sh && \
-    echo '' >> /app/entry.sh && \
-    echo '# Run Twitter initializer' >> /app/entry.sh && \
-    echo 'echo "Approach 2: Running Twitter initializer..."' >> /app/entry.sh && \
-    echo 'node /app/twitter-initializer.js &' >> /app/entry.sh && \
-    echo 'TWITTER_INIT_PID=$!' >> /app/entry.sh && \
-    echo '' >> /app/entry.sh && \
-    echo '# Try direct client start' >> /app/entry.sh && \
-    echo 'echo "Approach 3: Direct client start..."' >> /app/entry.sh && \
-    echo 'cd /app/eliza && DEBUG=twitter* TWITTER_CLIENT=true CLIENT_TYPES=twitter pnpm --filter @elizaos/agent start:client twitter --autopost --interval=60 &' >> /app/entry.sh && \
-    echo 'CLIENT_PID=$!' >> /app/entry.sh && \
-    echo '' >> /app/entry.sh && \
-    echo '# Keep container running' >> /app/entry.sh && \
-    echo 'echo "All processes started, keeping container alive..."' >> /app/entry.sh && \
-    echo 'wait $HEALTH_PID' >> /app/entry.sh && \
-    chmod +x /app/entry.sh
-
-# Modified CMD to use our entry script
-CMD ["/app/entry.sh"]
+# Set the command to run the start script
+CMD ["/app/start.sh"]
