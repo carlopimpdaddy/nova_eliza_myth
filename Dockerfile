@@ -43,6 +43,8 @@ RUN pnpm install --no-frozen-lockfile
 # Build the project
 RUN pnpm run build && pnpm prune --prod
 
+HEALTHCHECK --interval=30s --timeout=10s \
+    CMD curl -f http://localhost:3000/health || exit 1
 # Final runtime image
 FROM node:23.3.0-slim
 
