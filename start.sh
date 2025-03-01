@@ -42,6 +42,7 @@ TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET
 TWITTER_ENABLED=true
 TWITTER_AUTOPOST=true
 TWITTER_AUTOPOST_INTERVAL=${TWITTER_AUTOPOST_INTERVAL:-60}
+SERVER_PORT=3000
 EOF
 
 # Copy .env to the agent directory
@@ -74,35 +75,30 @@ cat > /app/eliza/agent/tsconfig.json << EOF
 }
 EOF
 
-log "Starting ElizaOS server and client components..."
+log "Starting ElizaOS server component..."
 cd /app/eliza/agent
 log "Working directory: $(pwd)"
 log "Directory contents: $(ls -la)"
+log "Available npm scripts:"
+pnpm run --list || log "Could not list available scripts"
 
-# Start ElizaOS server (background)
-log "Starting ElizaOS server with Twitter plugin..."
+# Set up environment variables
 export NODE_OPTIONS="--no-warnings --experimental-specifier-resolution=node"
 export TWITTER_ENABLED=true
 export TWITTER_AUTOPOST=true
 export TWITTER_AUTOPOST_INTERVAL=${TWITTER_AUTOPOST_INTERVAL:-60}
+export SERVER_PORT=3000
+export HEADLESS=true  # Run in headless mode (no UI needed)
+export ENABLE_AUTO_RUN=true  # Enable auto-running features
 
-# Run the server component (pnpm start) in the background
+# Run ElizaOS using the only available command
 log "Running: pnpm start -- --isRoot --plugin twitter --autopost --debug"
 pnpm start -- --isRoot --plugin twitter --autopost --debug &
 SERVER_PID=$!
 log "ElizaOS server started with PID $SERVER_PID"
 
-# Give server a moment to initialize before starting client
-sleep 5
-
-# Start the client component (pnpm start:client) in the background
-log "Running: pnpm start:client"
-pnpm start:client &
-CLIENT_PID=$!
-log "ElizaOS client started with PID $CLIENT_PID"
-
-# Keep container alive and monitor both processes
-log "ElizaOS services running. Container will stay alive."
+# Keep container alive and monitor the process
+log "ElizaOS service running. Container will stay alive."
 while true; do
     # Check if server is still running
     if ! kill -0 $SERVER_PID 2>/dev/null; then
@@ -110,14 +106,6 @@ while true; do
         pnpm start -- --isRoot --plugin twitter --autopost --debug &
         SERVER_PID=$!
         log "ElizaOS server restarted with PID $SERVER_PID"
-    fi
-    
-    # Check if client is still running
-    if ! kill -0 $CLIENT_PID 2>/dev/null; then
-        log "ElizaOS client died. Restarting..."
-        pnpm start:client &
-        CLIENT_PID=$!
-        log "ElizaOS client restarted with PID $CLIENT_PID"
     fi
     
     sleep 30
