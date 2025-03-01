@@ -80,23 +80,25 @@ COPY --from=builder /app/characters ./characters
 EXPOSE 3000 5173
 
 # Create health endpoint script
-RUN echo 'const http = require("http");\n\
-    const port = 3000;\n\
-    const server = http.createServer((req, res) => {\n\
-    console.log(`Received request: ${req.method} ${req.url}`);\n\
-    if (req.url === "/health") {\n\
-    console.log("Responding to health check");\n\
-    res.writeHead(200, {"Content-Type": "application/json"});\n\
-    res.end(JSON.stringify({ status: "ok" }));\n\
-    } else {\n\
-    // For any other request, still respond with 200 to ensure Railway\'s health check passes\n\
-    res.writeHead(200, {"Content-Type": "text/plain"});\n\
-    res.end("Health check server running");\n\
-    }\n\
-    });\n\
-    server.listen(port, "0.0.0.0", () => {\n\
-    console.log(`Health check server running on port ${port}`);\n\
-    });\n' > /app/health.js
+RUN cat > /app/health.js << 'EOL'
+const http = require("http");
+const port = 3000;
+const server = http.createServer((req, res) => {
+console.log("Received request:", req.method, req.url);
+if (req.url === "/health") {
+console.log("Responding to health check");
+res.writeHead(200, {"Content-Type": "application/json"});
+res.end(JSON.stringify({ status: "ok" }));
+} else {
+// For any other request, still respond with 200
+res.writeHead(200, {"Content-Type": "text/plain"});
+res.end("Health check server running");
+}
+});
+server.listen(port, "0.0.0.0", () => {
+console.log("Health check server running on port", port);
+});
+EOL
 
 # Command to start the application - run health server with higher priority
 CMD ["sh", "-c", "node /app/health.js"]
