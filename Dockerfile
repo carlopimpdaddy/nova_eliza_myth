@@ -28,7 +28,7 @@ RUN npm install --production
 # Create health check server
 RUN echo 'const express = require("express");' > health-server.js && \
     echo 'const app = express();' >> health-server.js && \
-    echo 'const port = process.env.PORT || 3000;' >> health-server.js && \
+    echo 'const port = process.env.PORT || 8080;' >> health-server.js && \
     echo 'console.log("Starting health check server on port:", port);' >> health-server.js && \
     echo 'app.get("/health", (req, res) => {' >> health-server.js && \
     echo '  console.log("Health check request received");' >> health-server.js && \
@@ -42,85 +42,81 @@ RUN echo 'const express = require("express");' > health-server.js && \
     echo '  console.log(`Health check server running on port ${port}`);' >> health-server.js && \
     echo '});' >> health-server.js
 
-# Create a more robust startup script for both health check and application
+# Create a simpler, more robust startup script that properly closes all conditions
 RUN echo '#!/bin/sh' > start.sh && \
+    echo 'set -e' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '# Print diagnostic information' >> start.sh && \
     echo 'echo "Start script running in $(pwd)"' >> start.sh && \
-    echo 'echo "Starting main ElizaOS application with Twitter client..."' >> start.sh && \
-    echo 'cd /app/eliza' >> start.sh && \
-    echo 'if [ -f "package.json" ]; then' >> start.sh && \
-    echo '  # Export NODE_OPTIONS to suppress version warnings' >> start.sh && \
-    echo '  export NODE_OPTIONS="--no-warnings"' >> start.sh && \
+    echo 'echo "Directory contents: $(ls -la)"' >> start.sh && \
     echo '' >> start.sh && \
-    echo '  # Match the variable names that are actually available in the environment' >> start.sh && \
-    echo '  echo "Setting up Twitter variables using available environment variables..."' >> start.sh && \
-    echo '  # Map variables from actual environment names to what ElizaOS expects' >> start.sh && \
-    echo '  if [ -n "$TWITTER_API_SECRET_KEY" ]; then' >> start.sh && \
-    echo '    export TWITTER_API_SECRET="$TWITTER_API_SECRET_KEY"' >> start.sh && \
-    echo '    echo "Set TWITTER_API_SECRET from TWITTER_API_SECRET_KEY"' >> start.sh && \
-    echo '  fi' >> start.sh && \
-    echo '  if [ -n "$TWITTER_ACCESS_TOKEN_SECRET" ]; then' >> start.sh && \
-    echo '    export TWITTER_ACCESS_SECRET="$TWITTER_ACCESS_TOKEN_SECRET"' >> start.sh && \
-    echo '    echo "Set TWITTER_ACCESS_SECRET from TWITTER_ACCESS_TOKEN_SECRET"' >> start.sh && \
-    echo '  fi' >> start.sh && \
+    echo '# Start ElizaOS application if it exists' >> start.sh && \
+    echo 'if [ -d "/app/eliza" ]; then' >> start.sh && \
+    echo '  echo "Starting main ElizaOS application with Twitter client..."' >> start.sh && \
+    echo '  cd /app/eliza' >> start.sh && \
+    echo '  echo "ElizaOS directory: $(pwd)"' >> start.sh && \
+    echo '  echo "Directory contents: $(ls -la)"' >> start.sh && \
     echo '' >> start.sh && \
-    echo '  # Debug all environment variables to help identify the correct names' >> start.sh && \
-    echo '  echo "TWITTER ENVIRONMENT VARIABLES (after mapping):"' >> start.sh && \
-    echo '  echo "TWITTER_API_KEY=$TWITTER_API_KEY"' >> start.sh && \
-    echo '  echo "TWITTER_API_SECRET=$TWITTER_API_SECRET"' >> start.sh && \
-    echo '  echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN"' >> start.sh && \
-    echo '  echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET"' >> start.sh && \
+    echo '  # Only proceed if we have a package.json' >> start.sh && \
+    echo '  if [ -f "package.json" ]; then' >> start.sh && \
+    echo '    # Export NODE_OPTIONS to suppress version warnings' >> start.sh && \
+    echo '    export NODE_OPTIONS="--no-warnings"' >> start.sh && \
     echo '' >> start.sh && \
-    echo '  # Check if all required variables are set' >> start.sh && \
-    echo '  if [ -z "$TWITTER_API_KEY" ] || [ -z "$TWITTER_API_SECRET" ] || [ -z "$TWITTER_ACCESS_TOKEN" ] || [ -z "$TWITTER_ACCESS_SECRET" ]; then' >> start.sh && \
-    echo '    echo "ERROR: Missing Twitter credentials after mapping. Please check variable names."' >> start.sh && \
-    echo '    echo "Health check server will continue running, but Twitter integration will not work."' >> start.sh && \
-    echo '  else' >> start.sh && \
-    echo '    # Create a .env file with Twitter config' >> start.sh && \
-    echo '    echo "Creating .env file with Twitter configuration..."' >> start.sh && \
-    echo '    echo "TWITTER_API_KEY=$TWITTER_API_KEY" > .env' >> start.sh && \
-    echo '    echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env' >> start.sh && \
-    echo '    echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env' >> start.sh && \
-    echo '    echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> .env' >> start.sh && \
-    echo '    echo "TWITTER_CLIENT=true" >> .env' >> start.sh && \
-    echo '    echo "TWITTER_CLIENT_ENABLED=true" >> .env' >> start.sh && \
-    echo '    echo "ENABLE_TWITTER=true" >> .env' >> start.sh && \
-    echo '    echo "CLIENT_TYPES=twitter" >> .env' >> start.sh && \
-    echo '    echo "AGENT_CLIENTS=twitter" >> .env' >> start.sh && \
-    echo '    echo "AUTOPOST=true" >> .env' >> start.sh && \
-    echo '    echo "AUTOPOST_INTERVAL=60" >> .env' >> start.sh && \
-    echo '    echo "DEBUG=twitter*" >> .env' >> start.sh && \
-    echo '    echo "Created .env file in $(pwd)"' >> start.sh && \
-    echo '' >> start.sh && \
-    echo '    # Also create .env file in the agent directory with all variable variations' >> start.sh && \
-    echo '    if [ -d "agent" ]; then' >> start.sh && \
-    echo '      echo "Creating .env file in agent directory..."' >> start.sh && \
-    echo '      echo "TWITTER_API_KEY=$TWITTER_API_KEY" > agent/.env' >> start.sh && \
-    echo '      echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> agent/.env' >> start.sh && \
-    echo '      echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> agent/.env' >> start.sh && \
-    echo '      echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> agent/.env' >> start.sh && \
-    echo '      echo "TWITTER_CLIENT=true" >> agent/.env' >> start.sh && \
-    echo '      echo "TWITTER_CLIENT_ENABLED=true" >> agent/.env' >> start.sh && \
-    echo '      echo "ENABLE_TWITTER=true" >> agent/.env' >> start.sh && \
-    echo '      echo "CLIENT_TYPES=twitter" >> agent/.env' >> start.sh && \
-    echo '      echo "AGENT_CLIENTS=twitter" >> agent/.env' >> start.sh && \
-    echo '      echo "AUTOPOST=true" >> agent/.env' >> start.sh && \
-    echo '      echo "AUTOPOST_INTERVAL=60" >> agent/.env' >> start.sh && \
-    echo '      echo "DEBUG=twitter*" >> agent/.env' >> start.sh && \
-    echo '      echo "Created .env file in $(pwd)/agent"' >> start.sh && \
+    echo '    # Set up Twitter variables' >> start.sh && \
+    echo '    echo "Setting up Twitter variables..."' >> start.sh && \
+    echo '    # Map variables from actual environment names to what ElizaOS expects' >> start.sh && \
+    echo '    if [ -n "$TWITTER_API_SECRET_KEY" ]; then' >> start.sh && \
+    echo '      export TWITTER_API_SECRET="$TWITTER_API_SECRET_KEY"' >> start.sh && \
+    echo '      echo "Set TWITTER_API_SECRET from TWITTER_API_SECRET_KEY"' >> start.sh && \
+    echo '    fi' >> start.sh && \
+    echo '    if [ -n "$TWITTER_ACCESS_TOKEN_SECRET" ]; then' >> start.sh && \
+    echo '      export TWITTER_ACCESS_SECRET="$TWITTER_ACCESS_TOKEN_SECRET"' >> start.sh && \
+    echo '      echo "Set TWITTER_ACCESS_SECRET from TWITTER_ACCESS_TOKEN_SECRET"' >> start.sh && \
     echo '    fi' >> start.sh && \
     echo '' >> start.sh && \
-    echo '    # First, let\'s try to install twitter-api-v2 if not already installed' >> start.sh && \
-    echo '    cd agent' >> start.sh && \
-    echo '    echo "Installing Twitter API package..."' >> start.sh && \
-    echo '    pnpm add twitter-api-v2 --ignore-scripts || echo "Failed to install twitter-api-v2, may already be installed"' >> start.sh && \
+    echo '    # Debug all environment variables' >> start.sh && \
+    echo '    echo "TWITTER ENVIRONMENT VARIABLES (after mapping):"' >> start.sh && \
+    echo '    echo "TWITTER_API_KEY=$TWITTER_API_KEY"' >> start.sh && \
+    echo '    echo "TWITTER_API_SECRET=$TWITTER_API_SECRET"' >> start.sh && \
+    echo '    echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN"' >> start.sh && \
+    echo '    echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET"' >> start.sh && \
     echo '' >> start.sh && \
-    echo '    # Create Twitter client directory if it doesn\'t exist' >> start.sh && \
-    echo '    echo "Creating Twitter client directory structure..."' >> start.sh && \
-    echo '    mkdir -p src/clients/twitter' >> start.sh && \
+    echo '    # Only proceed with Twitter setup if all credentials are present' >> start.sh && \
+    echo '    if [ -z "$TWITTER_API_KEY" ] || [ -z "$TWITTER_API_SECRET" ] || [ -z "$TWITTER_ACCESS_TOKEN" ] || [ -z "$TWITTER_ACCESS_SECRET" ]; then' >> start.sh && \
+    echo '      echo "WARNING: Missing Twitter credentials. Twitter integration will not work."' >> start.sh && \
+    echo '    else' >> start.sh && \
+    echo '      echo "All Twitter credentials present, setting up Twitter integration"' >> start.sh && \
+    echo '      # Create .env files' >> start.sh && \
+    echo '      echo "Creating .env files with Twitter configuration..."' >> start.sh && \
+    echo '      echo "TWITTER_API_KEY=$TWITTER_API_KEY" > .env' >> start.sh && \
+    echo '      echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env' >> start.sh && \
+    echo '      echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env' >> start.sh && \
+    echo '      echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> .env' >> start.sh && \
+    echo '      echo "TWITTER_CLIENT=true" >> .env' >> start.sh && \
+    echo '      echo "TWITTER_CLIENT_ENABLED=true" >> .env' >> start.sh && \
+    echo '      echo "ENABLE_TWITTER=true" >> .env' >> start.sh && \
+    echo '      echo "CLIENT_TYPES=twitter" >> .env' >> start.sh && \
+    echo '      echo "AGENT_CLIENTS=twitter" >> .env' >> start.sh && \
+    echo '      echo "AUTOPOST=true" >> .env' >> start.sh && \
+    echo '      echo "AUTOPOST_INTERVAL=60" >> .env' >> start.sh && \
+    echo '      echo "DEBUG=twitter*" >> .env' >> start.sh && \
     echo '' >> start.sh && \
-    echo '    # Create a minimal Twitter client index.ts file' >> start.sh && \
-    echo '    # Note: This is intentionally kept very minimal to avoid shell escaping issues' >> start.sh && \
-    echo '    cat > src/clients/twitter/index.ts << EOL' >> start.sh && \
+    echo '      # Also create .env in agent directory if it exists' >> start.sh && \
+    echo '      if [ -d "agent" ]; then' >> start.sh && \
+    echo '        cp .env agent/.env' >> start.sh && \
+    echo '        echo "Copied .env to agent directory"' >> start.sh && \
+    echo '      fi' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '      # Setup Twitter client' >> start.sh && \
+    echo '      if [ -d "agent" ]; then' >> start.sh && \
+    echo '        cd agent' >> start.sh && \
+    echo '        echo "Installing Twitter API package..."' >> start.sh && \
+    echo '        pnpm add twitter-api-v2 --ignore-scripts || echo "Failed to install twitter-api-v2"' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '        # Create Twitter client directory and files' >> start.sh && \
+    echo '        echo "Creating Twitter client files..."' >> start.sh && \
+    echo '        mkdir -p src/clients/twitter' >> start.sh && \
+    echo '        cat > src/clients/twitter/index.ts << "EOF"' >> start.sh && \
     echo 'import { TwitterApi } from "twitter-api-v2";' >> start.sh && \
     echo '' >> start.sh && \
     echo 'let twitterClient: TwitterApi | null = null;' >> start.sh && \
@@ -142,7 +138,7 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '    // Set up autoposting if enabled' >> start.sh && \
     echo '    if (options.autopost || process.env.AUTOPOST === "true") {' >> start.sh && \
     echo '      const interval = options.interval || parseInt(process.env.AUTOPOST_INTERVAL || "60", 10);' >> start.sh && \
-    echo '      console.log(`Setting up autopost every \${interval} minutes`);' >> start.sh && \
+    echo '      console.log(`Setting up autopost every ${interval} minutes`);' >> start.sh && \
     echo '      setInterval(async () => {' >> start.sh && \
     echo '        try {' >> start.sh && \
     echo '          await postTweet();' >> start.sh && \
@@ -178,25 +174,32 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '}' >> start.sh && \
     echo '' >> start.sh && \
     echo 'export default { initialize, postTweet };' >> start.sh && \
-    echo 'EOL' >> start.sh && \
+    echo 'EOF' >> start.sh && \
+    echo '        cd ..' >> start.sh && \
+    echo '      fi' >> start.sh && \
     echo '' >> start.sh && \
-    echo '    # Run the agent with Twitter client enabled' >> start.sh && \
-    echo '    echo "Starting ElizaOS with Twitter client..."' >> start.sh && \
-    echo '    export TWITTER_CLIENT=true' >> start.sh && \
-    echo '    export TWITTER_CLIENT_ENABLED=true' >> start.sh && \
-    echo '    export ENABLE_TWITTER=true' >> start.sh && \
-    echo '    export CLIENT_TYPES=twitter' >> start.sh && \
-    echo '    export AGENT_CLIENTS=twitter' >> start.sh && \
-    echo '    export AUTOPOST=true' >> start.sh && \
-    echo '    export AUTOPOST_INTERVAL=60' >> start.sh && \
-    echo '    export DISPLAY_NAME="Nova 11 Wing"' >> start.sh && \
-    echo '    export DEBUG=twitter*' >> start.sh && \
-    echo '    NODE_OPTIONS="--no-warnings" pnpm start --isRoot --client twitter --autopost --interval=60 &' >> start.sh && \
-    echo '    AGENT_PID=$!' >> start.sh && \
-    echo '    echo "ElizaOS started with PID $AGENT_PID"' >> start.sh && \
+    echo '      # Set Twitter environment variables' >> start.sh && \
+    echo '      export TWITTER_CLIENT=true' >> start.sh && \
+    echo '      export TWITTER_CLIENT_ENABLED=true' >> start.sh && \
+    echo '      export ENABLE_TWITTER=true' >> start.sh && \
+    echo '      export CLIENT_TYPES=twitter' >> start.sh && \
+    echo '      export AGENT_CLIENTS=twitter' >> start.sh && \
+    echo '      export AUTOPOST=true' >> start.sh && \
+    echo '      export AUTOPOST_INTERVAL=60' >> start.sh && \
+    echo '      export DISPLAY_NAME="Nova 11 Wing"' >> start.sh && \
+    echo '      export DEBUG=twitter*' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '      # Start the agent with Twitter enabled' >> start.sh && \
+    echo '      echo "Starting ElizaOS with Twitter client..."' >> start.sh && \
+    echo '      NODE_OPTIONS="--no-warnings" pnpm start --isRoot --client twitter --autopost --interval=60 &' >> start.sh && \
+    echo '      AGENT_PID=$!' >> start.sh && \
+    echo '      echo "ElizaOS started with PID $AGENT_PID"' >> start.sh && \
+    echo '    fi' >> start.sh && \
+    echo '  else' >> start.sh && \
+    echo '    echo "No package.json found in ElizaOS directory"' >> start.sh && \
     echo '  fi' >> start.sh && \
     echo 'else' >> start.sh && \
-    echo '  echo "ElizaOS application not found. Health check server will continue running."' >> start.sh && \
+    echo '  echo "ElizaOS directory not found"' >> start.sh && \
     echo 'fi' >> start.sh && \
     echo '' >> start.sh && \
     echo '# Keep the container running with a simple loop' >> start.sh && \
@@ -220,7 +223,7 @@ RUN mkdir -p /app/agent/dist && \
     echo '    // Create a simple health check server' >> /app/agent/dist/index.js && \
     echo '    console.log("Health server not found, creating a simple one");' >> /app/agent/dist/index.js && \
     echo '    const http = require("http");' >> /app/agent/dist/index.js && \
-    echo '    const port = process.env.PORT || 3000;' >> /app/agent/dist/index.js && \
+    echo '    const port = process.env.PORT || 8080;' >> /app/agent/dist/index.js && \
     echo '    const server = http.createServer((req, res) => {' >> /app/agent/dist/index.js && \
     echo '      console.log("Received request:", req.url);' >> /app/agent/dist/index.js && \
     echo '      if (req.url === "/health") {' >> /app/agent/dist/index.js && \
@@ -250,7 +253,7 @@ RUN mkdir -p /app/agent/dist && \
     echo '    } catch (permError) {' >> /app/agent/dist/index.js && \
     echo '      console.error("Failed to set permissions:", permError);' >> /app/agent/dist/index.js && \
     echo '    }' >> /app/agent/dist/index.js && \
-    echo '    require("child_process").spawn("/app/start.sh", [], { stdio: "inherit", shell: true });' >> /app/agent/dist/index.js && \
+    echo '    require("child_process").execSync("/app/start.sh", { stdio: "inherit", shell: true });' >> /app/agent/dist/index.js && \
     echo '  }' >> /app/agent/dist/index.js && \
     echo '} catch (error) {' >> /app/agent/dist/index.js && \
     echo '  console.error("Error in agent entry point:", error);' >> /app/agent/dist/index.js && \
@@ -305,11 +308,11 @@ RUN if [ -f "package.json" ]; then \
 WORKDIR /app
 
 # Expose port for health check
-EXPOSE 3000
+EXPOSE 8080
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=8080
 ENV NODE_OPTIONS="--no-warnings"
 ENV DEBUG=twitter*
 ENV TWITTER_CLIENT=true
@@ -324,5 +327,5 @@ ENV CLIENT_TYPES=twitter
 ENV DEBUG_TWITTER=true
 ENV DISPLAY_NAME="Nova 11 Wing"
 
-# Set the command to run the start script
+# Set the command to run the entry point script
 CMD ["node", "/app/agent/dist/index.js"]
