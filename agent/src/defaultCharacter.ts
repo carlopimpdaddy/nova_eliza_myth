@@ -14,7 +14,7 @@ export const defaultCharacter: Character = {
     username: "mythosbuild",
     screenName: "Nova 11 Wing",
     plugins: [
-        "twitter"
+        "@elizaos/plugin-twitter"
     ],
     clients: [
         "twitter"
