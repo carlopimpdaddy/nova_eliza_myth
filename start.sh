@@ -48,45 +48,16 @@ EOF
 cp /app/.env /app/eliza/agent/.env
 log "Copied .env to agent directory"
 
-# Create a simple JS script that launches ElizaOS directly
-log "Creating a launch script..."
-cat > /app/eliza/agent/dist/launch.js << EOF
-// Simple launcher script for ElizaOS
-const { spawn } = require('child_process');
-
-// Start ElizaOS process
-console.log('Launching ElizaOS...');
-
-// Use direct npx execution with ts-node
-const process = spawn('npx', [
-  'ts-node',
-  '--swc',  // Use faster SWC compiler
-  'src/index.ts',
-  '--isRoot',
-  '--plugin', 'twitter',
-  '--autopost',
-  '--debug'
-], {
-  cwd: '/app/eliza/agent',
-  stdio: 'inherit',
-  env: {
-    ...process.env,
-    NODE_OPTIONS: '--no-warnings'
-  }
-});
-
-process.on('error', (err) => {
-  console.error('Failed to start ElizaOS:', err);
-});
-
-console.log('ElizaOS process launched');
-EOF
-
-# Start ElizaOS using the standard JS file in the dist directory
-log "Starting ElizaOS with Twitter plugin..."
+# DIRECT EXECUTION APPROACH - No launcher script needed
+log "Starting ElizaOS with Twitter plugin (direct execution)..."
 cd /app/eliza/agent
+log "Working directory: $(pwd)"
+log "Directory contents: $(ls -la)"
+
+# Start ElizaOS directly in the background
 export NODE_OPTIONS="--no-warnings --experimental-specifier-resolution=node"
-node dist/launch.js &
+log "Starting ElizaOS with: npx ts-node --swc src/index.ts --isRoot --plugin twitter --autopost --debug"
+npx ts-node --swc src/index.ts --isRoot --plugin twitter --autopost --debug &
 ELIZA_PID=$!
 log "ElizaOS started with PID $ELIZA_PID"
 
@@ -97,7 +68,8 @@ while true; do
     if ! kill -0 $ELIZA_PID 2>/dev/null; then
         log "ElizaOS process died. Restarting..."
         cd /app/eliza/agent
-        node dist/launch.js &
+        log "Restarting ElizaOS with: npx ts-node --swc src/index.ts --isRoot --plugin twitter --autopost --debug"
+        npx ts-node --swc src/index.ts --isRoot --plugin twitter --autopost --debug &
         ELIZA_PID=$!
         log "ElizaOS restarted with PID $ELIZA_PID"
     fi
