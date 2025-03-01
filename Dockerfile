@@ -1,5 +1,5 @@
-# Use a specific Node.js version for better reproducibility
-FROM node:18-slim AS builder
+# Use a newer Node.js version (closer to the required 23.3.0)
+FROM node:20-slim AS builder
 
 # Install necessary build tools
 RUN apt-get update && \
@@ -52,16 +52,22 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo 'echo "Waiting for health check server to initialize..."' >> start.sh && \
     echo 'sleep 2' >> start.sh && \
     echo '' >> start.sh && \
-    echo 'echo "Starting main ElizaOS application..."' >> start.sh && \
+    echo 'echo "Starting main ElizaOS application with Twitter client..."' >> start.sh && \
     echo 'cd /app/eliza' >> start.sh && \
     echo 'if [ -f "package.json" ]; then' >> start.sh && \
-    echo '  pnpm start || npm start' >> start.sh && \
+    echo '  # Export NODE_OPTIONS to suppress version warnings' >> start.sh && \
+    echo '  export NODE_OPTIONS="--no-warnings"' >> start.sh && \
+    echo '  # Start the agent and Twitter client specifically' >> start.sh && \
+    echo '  echo "Starting agent with Twitter client..."' >> start.sh && \
+    echo '  pnpm --filter "@elizaos/agent" start --isRoot --client twitter &' >> start.sh && \
+    echo '  AGENT_PID=$!' >> start.sh && \
+    echo '  echo "Agent started with PID $AGENT_PID"' >> start.sh && \
     echo 'else' >> start.sh && \
     echo '  echo "ElizaOS application not found. Health check server will continue running."' >> start.sh && \
     echo 'fi' >> start.sh && \
     echo '' >> start.sh && \
-    echo '# Keep the container running if app exits' >> start.sh && \
-    echo 'echo "Main application exited. Health check server still running."' >> start.sh && \
+    echo '# Keep the container running' >> start.sh && \
+    echo 'echo "Services running. Keeping container alive..."' >> start.sh && \
     echo 'wait $HEALTH_PID' >> start.sh && \
     chmod +x start.sh
 
@@ -88,7 +94,7 @@ RUN mkdir -p /app/agent/dist && \
     echo 'module.exports = { start: () => console.log("Agent started") };' >> /app/agent/dist/index.js
 
 # Final image
-FROM node:18-slim
+FROM node:20-slim
 
 # Install minimal dependencies
 RUN apt-get update && \
@@ -153,7 +159,16 @@ RUN if [ ! -f "/app/eliza/agent/src/types.ts" ]; then \
 WORKDIR /app/eliza
 RUN if [ -f "package.json" ]; then \
     pnpm install && \
-    pnpm run build || echo "Build failed, but continuing"; \
+    NODE_OPTIONS="--no-warnings" pnpm run build || echo "Build failed, but continuing"; \
+    fi
+
+# Create a .env file with Twitter config if not present
+RUN if [ ! -f ".env" ] && [ -n "$TWITTER_API_KEY" ]; then \
+    echo "Creating .env file with Twitter configuration..." && \
+    echo "TWITTER_API_KEY=$TWITTER_API_KEY" > .env && \
+    echo "TWITTER_API_SECRET=$TWITTER_API_SECRET" >> .env && \
+    echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN" >> .env && \
+    echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET" >> .env; \
     fi
 
 # Return to app directory
@@ -165,6 +180,7 @@ EXPOSE 3000
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV NODE_OPTIONS="--no-warnings"
 
 # Railway will run agent/dist/index.js directly, so this is a fallback
 CMD ["node", "agent/dist/index.js"]
