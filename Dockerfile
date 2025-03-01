@@ -106,7 +106,7 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '      echo "Created .env file in $(pwd)/agent"' >> start.sh && \
     echo '    fi' >> start.sh && \
     echo '' >> start.sh && \
-    echo '    # Start the agent and Twitter client with all possible Twitter variable names' >> start.sh && \
+    echo '    # Start the agent with all Twitter environment variables and debug flags' >> start.sh && \
     echo '    echo "Starting agent with Twitter client using mapped variables..."' >> start.sh && \
     echo '    # Print Twitter credential check' >> start.sh && \
     echo '    echo "TWITTER CREDENTIALS VERIFICATION:"' >> start.sh && \
@@ -137,9 +137,24 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo '    AUTOPOST_INTERVAL=60 \' >> start.sh && \
     echo '    DISPLAY_NAME="Nova 11 Wing" \' >> start.sh && \
     echo '    NODE_OPTIONS="--no-warnings" \' >> start.sh && \
-    echo '    pnpm --filter "@elizaos/agent" start --isRoot --client twitter --autopost --interval=60 --debug &' >> start.sh && \
+    echo '    pnpm --filter "@elizaos/agent" start --isRoot --client twitter --autopost --interval=60 &' >> start.sh && \
     echo '    AGENT_PID=$!' >> start.sh && \
     echo '    echo "Agent started with PID $AGENT_PID"' >> start.sh && \
+    echo '    # Wait a moment for the agent to initialize' >> start.sh && \
+    echo '    echo "Waiting for agent to initialize..."' >> start.sh && \
+    echo '    sleep 5' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '    # Directly run the Twitter client initializer to force client activation' >> start.sh && \
+    echo '    echo "Running Twitter client direct initializer..."' >> start.sh && \
+    echo '    node /app/twitter-initializer.js &' >> start.sh && \
+    echo '    TWITTER_INIT_PID=$!' >> start.sh && \
+    echo '    echo "Twitter initializer started with PID $TWITTER_INIT_PID"' >> start.sh && \
+    echo '' >> start.sh && \
+    echo '    # Also try direct client start command' >> start.sh && \
+    echo '    echo "Also trying direct Twitter client start command..."' >> start.sh && \
+    echo '    cd /app/eliza && DEBUG=twitter* TWITTER_CLIENT=true CLIENT_TYPES=twitter pnpm --filter @elizaos/agent start:client twitter --autopost --interval=60 &' >> start.sh && \
+    echo '    DIRECT_CLIENT_PID=$!' >> start.sh && \
+    echo '    echo "Direct Twitter client command started with PID $DIRECT_CLIENT_PID"' >> start.sh && \
     echo '  fi' >> start.sh && \
     echo 'else' >> start.sh && \
     echo '  echo "ElizaOS application not found. Health check server will continue running."' >> start.sh && \
@@ -387,5 +402,50 @@ ENV CLIENT_TYPES=twitter
 ENV DEBUG_TWITTER=true
 ENV DISPLAY_NAME="Nova 11 Wing"
 
-# Modified CMD to explicitly include Twitter client parameters
-CMD ["sh", "-c", "NODE_OPTIONS=\"--no-warnings\" node agent/dist/index.js --client twitter --autopost --interval=60"]
+# Create a dedicated entry point script
+RUN echo '#!/bin/sh' > /app/entry.sh && \
+    echo 'echo "Starting ElizaOS with explicit Twitter client..."' >> /app/entry.sh && \
+    echo 'export NODE_OPTIONS="--no-warnings"' >> /app/entry.sh && \
+    echo 'export DEBUG=twitter*' >> /app/entry.sh && \
+    echo 'export TWITTER_CLIENT=true' >> /app/entry.sh && \
+    echo 'export TWITTER_CLIENT_ENABLED=true' >> /app/entry.sh && \
+    echo 'export ENABLE_TWITTER=true' >> /app/entry.sh && \
+    echo 'export CLIENT_TYPES=twitter' >> /app/entry.sh && \
+    echo 'export AGENT_CLIENTS=twitter' >> /app/entry.sh && \
+    echo 'export AUTOPOST=true' >> /app/entry.sh && \
+    echo 'export AUTOPOST_INTERVAL=60' >> /app/entry.sh && \
+    echo 'export DISPLAY_NAME="Nova 11 Wing"' >> /app/entry.sh && \
+    echo '' >> /app/entry.sh && \
+    echo '# Start health check server' >> /app/entry.sh && \
+    echo 'node /app/health-server.js &' >> /app/entry.sh && \
+    echo 'HEALTH_PID=$!' >> /app/entry.sh && \
+    echo 'echo "Health check server started with PID $HEALTH_PID"' >> /app/entry.sh && \
+    echo '' >> /app/entry.sh && \
+    echo '# Wait for health check to initialize' >> /app/entry.sh && \
+    echo 'sleep 2' >> /app/entry.sh && \
+    echo '' >> /app/entry.sh && \
+    echo '# Try different approaches to start the Twitter client' >> /app/entry.sh && \
+    echo 'echo "Approach 1: Starting agent with Twitter client..."' >> /app/entry.sh && \
+    echo 'cd /app/eliza && DEBUG=twitter* TWITTER_CLIENT=true CLIENT_TYPES=twitter AGENT_CLIENTS=twitter AUTOPOST=true pnpm --filter "@elizaos/agent" start --isRoot --client twitter --autopost --interval=60 --debug &' >> /app/entry.sh && \
+    echo 'AGENT_PID=$!' >> /app/entry.sh && \
+    echo '' >> /app/entry.sh && \
+    echo '# Wait for agent to initialize' >> /app/entry.sh && \
+    echo 'sleep 5' >> /app/entry.sh && \
+    echo '' >> /app/entry.sh && \
+    echo '# Run Twitter initializer' >> /app/entry.sh && \
+    echo 'echo "Approach 2: Running Twitter initializer..."' >> /app/entry.sh && \
+    echo 'node /app/twitter-initializer.js &' >> /app/entry.sh && \
+    echo 'TWITTER_INIT_PID=$!' >> /app/entry.sh && \
+    echo '' >> /app/entry.sh && \
+    echo '# Try direct client start' >> /app/entry.sh && \
+    echo 'echo "Approach 3: Direct client start..."' >> /app/entry.sh && \
+    echo 'cd /app/eliza && DEBUG=twitter* TWITTER_CLIENT=true CLIENT_TYPES=twitter pnpm --filter @elizaos/agent start:client twitter --autopost --interval=60 &' >> /app/entry.sh && \
+    echo 'CLIENT_PID=$!' >> /app/entry.sh && \
+    echo '' >> /app/entry.sh && \
+    echo '# Keep container running' >> /app/entry.sh && \
+    echo 'echo "All processes started, keeping container alive..."' >> /app/entry.sh && \
+    echo 'wait $HEALTH_PID' >> /app/entry.sh && \
+    chmod +x /app/entry.sh
+
+# Modified CMD to use our entry script
+CMD ["/app/entry.sh"]
