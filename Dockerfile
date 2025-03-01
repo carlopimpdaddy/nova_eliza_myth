@@ -43,8 +43,6 @@ RUN pnpm install --no-frozen-lockfile
 # Build the project
 RUN pnpm run build && pnpm prune --prod
 
-HEALTHCHECK --interval=30s --timeout=10s \
-    CMD curl -f http://localhost:3000/health || exit 1
 # Final runtime image
 FROM node:23.3.0-slim
 
@@ -54,6 +52,7 @@ RUN npm install -g pnpm@9.15.4 && \
     apt-get install -y \
     git \
     python3 \
+    curl \
     ffmpeg && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -74,8 +73,26 @@ COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
-# Expose necessary ports
+# Create directory structure for ElizaOS
+RUN mkdir -p /app/eliza/agent
+COPY --from=builder /app/agent /app/eliza/agent
+
+
+
+# Install express for the health check server
+RUN npm install express
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s CMD curl -f http://localhost:8080/health || exit 1
+
+# Expose necessary ports (Railway will override this)
 EXPOSE 3000 5173
 
-# Command to start the application
-CMD ["sh", "-c", "pnpm start & pnpm start:client"]
+# Set environment variables
+ENV HEADLESS=true \
+    ENABLE_AUTO_RUN=true \
+    TWITTER_ENABLED=true \
+    TWITTER_AUTOPOST=true
+
+# Railway expects this entry point
+CMD ["node", "/app/agent/dist/index.js"]
