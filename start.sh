@@ -1,114 +1,99 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
-# Print diagnostic information
-echo "Start script running in $(pwd) at $(date)"
-echo "Directory contents: $(ls -la)"
+# Log function for better visibility
+log() {
+    echo "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ") $1"
+}
 
-# Start ElizaOS application if it exists
-if [ -d "/app/eliza" ]; then
-  echo "Starting main ElizaOS application with Twitter plugin..."
-  cd /app/eliza
-  echo "ElizaOS directory: $(pwd)"
-  echo "Directory contents: $(ls -la)"
+log "Starting ElizaOS deployment..."
 
-  # Only proceed if we have a package.json
-  if [ -f "package.json" ]; then
-    # Export NODE_OPTIONS to suppress version warnings
-    export NODE_OPTIONS="--no-warnings"
+# Set up Twitter variables
+log "Setting up Twitter variables..."
 
-    # Set up Twitter variables
-    echo "Setting up Twitter variables..."
-    # Map variables from actual environment names to what ElizaOS expects
-    if [ -n "$TWITTER_API_SECRET_KEY" ]; then
-      export TWITTER_API_SECRET="$TWITTER_API_SECRET_KEY"
-      echo "Set TWITTER_API_SECRET from TWITTER_API_SECRET_KEY"
-    fi
-    if [ -n "$TWITTER_ACCESS_TOKEN_SECRET" ]; then
-      export TWITTER_ACCESS_SECRET="$TWITTER_ACCESS_TOKEN_SECRET"
-      echo "Set TWITTER_ACCESS_SECRET from TWITTER_ACCESS_TOKEN_SECRET"
-    fi
+# Map Twitter credentials from Railway environment variables if needed
+if [ -n "$TWITTER_API_SECRET_KEY" ] && [ -z "$TWITTER_API_SECRET" ]; then
+    export TWITTER_API_SECRET="$TWITTER_API_SECRET_KEY"
+    log "Set TWITTER_API_SECRET from TWITTER_API_SECRET_KEY"
+fi
 
-    # Debug all environment variables
-    echo "TWITTER ENVIRONMENT VARIABLES (after mapping):"
-    echo "TWITTER_API_KEY=$TWITTER_API_KEY"
-    echo "TWITTER_API_SECRET=$TWITTER_API_SECRET"
-    echo "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN"
-    echo "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET"
+if [ -n "$TWITTER_ACCESS_TOKEN_SECRET" ] && [ -z "$TWITTER_ACCESS_SECRET" ]; then
+    export TWITTER_ACCESS_SECRET="$TWITTER_ACCESS_TOKEN_SECRET"
+    log "Set TWITTER_ACCESS_SECRET from TWITTER_ACCESS_TOKEN_SECRET"
+fi
 
-    # Only proceed with Twitter setup if all credentials are present
-    if [ -z "$TWITTER_API_KEY" ] || [ -z "$TWITTER_API_SECRET" ] || [ -z "$TWITTER_ACCESS_TOKEN" ] || [ -z "$TWITTER_ACCESS_SECRET" ]; then
-      echo "WARNING: Missing Twitter credentials. Twitter integration will not work."
-    else
-      echo "All Twitter credentials present, setting up Twitter integration"
+# Log Twitter environment variables
+log "TWITTER ENVIRONMENT VARIABLES (after mapping):"
+log "TWITTER_API_KEY=$TWITTER_API_KEY"
+log "TWITTER_API_SECRET=$TWITTER_API_SECRET"
+log "TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN"
+log "TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET"
 
-      # Create full .env file with all possible Twitter config variables
-      echo "Creating .env files with Twitter configuration..."
-      cat > .env << EOF
-# Twitter API Credentials
+# Check if all Twitter credentials are present
+if [ -n "$TWITTER_API_KEY" ] && [ -n "$TWITTER_API_SECRET" ] && 
+   [ -n "$TWITTER_ACCESS_TOKEN" ] && [ -n "$TWITTER_ACCESS_SECRET" ]; then
+    log "All Twitter credentials present, setting up Twitter integration"
+    
+    # Create .env file with Twitter credentials
+    log "Creating .env files with Twitter configuration..."
+    
+    cat > /app/.env << EOF
 TWITTER_API_KEY=$TWITTER_API_KEY
 TWITTER_API_SECRET=$TWITTER_API_SECRET
 TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN
 TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET
-TWITTER_BEARER_TOKEN=$TWITTER_ACCESS_TOKEN
-
-# Twitter Plugin Configuration
-ENABLE_PLUGINS=twitter
-PLUGINS=twitter
-ENABLE_TWITTER=true
 TWITTER_ENABLED=true
 TWITTER_AUTOPOST=true
-TWITTER_AUTOPOST_INTERVAL=60
-DISPLAY_NAME=Nova 11 Wing
-DEBUG=twitter*,@elizaos/plugin-twitter*,@elizaos:*
-LOG_LEVEL=debug
+TWITTER_AUTOPOST_INTERVAL=${TWITTER_AUTOPOST_INTERVAL:-60}
 EOF
 
-      # Copy .env to agent directory for direct access
-      if [ -d "agent" ]; then
-        cp .env agent/.env
-        echo "Copied .env to agent directory"
-      fi
-      
-      # Set Twitter environment variables directly for the process
-      export ENABLE_PLUGINS=twitter
-      export PLUGINS=twitter
-      export ENABLE_TWITTER=true
-      export TWITTER_ENABLED=true
-      export TWITTER_AUTOPOST=true
-      export TWITTER_AUTOPOST_INTERVAL=60
-      export DEBUG=twitter*,@elizaos/plugin-twitter*,@elizaos:*
-      export LOG_LEVEL=debug
-      export DISPLAY_NAME="Nova 11 Wing"
-
-      # Start the agent with Twitter plugin activated with our custom launcher script
-      echo "Starting ElizaOS with Twitter plugin using custom launcher..."
-      if [ -f "/app/eliza-start.sh" ]; then
-        /app/eliza-start.sh &
-        AGENT_PID=$!
-        echo "ElizaOS started with PID $AGENT_PID"
-      else
-        echo "Custom launcher not found, falling back to direct execution"
+    # Copy .env to the agent directory
+    cp /app/.env /app/eliza/agent/.env
+    log "Copied .env to agent directory"
+    
+    # Compile TypeScript files if they haven't been compiled
+    if [ ! -f "/app/eliza/agent/dist/index.js" ]; then
+        log "Compiled JavaScript not found. Attempting to compile TypeScript..."
         cd /app/eliza/agent
-        npx ts-node src/index.ts --isRoot --plugin twitter --autopost --debug &
-        AGENT_PID=$!
-        echo "ElizaOS started with PID $AGENT_PID via fallback method"
-      fi
+        npx tsc --skipLibCheck || echo "TypeScript compilation warning (continuing)"
     fi
-  else
-    echo "No package.json found in ElizaOS directory"
-  fi
+    
+    # Start the ElizaOS process
+    log "Starting ElizaOS with Twitter plugin using custom launcher..."
+    node /app/agent/dist/index.js &
+    
+    # Store the PID of the ElizaOS process
+    ELIZA_PID=$!
+    log "ElizaOS started with PID $ELIZA_PID"
 else
-  echo "ElizaOS directory not found"
+    log "WARNING: Twitter credentials missing. Twitter integration will not be enabled."
 fi
 
-# Keep the container running
-echo "ElizaOS services running. Container will stay alive."
+# Start the health check server
+log "Starting health check server on port 8080..."
+node /app/health-server.js &
+
+log "ElizaOS services running. Container will stay alive."
+
+# Wait for signals to properly terminate child processes
+cleanup() {
+    log "Received termination signal. Cleaning up..."
+    # Kill child processes
+    pkill -P $$ || true
+    exit 0
+}
+
+trap cleanup SIGTERM SIGINT
+
+# Keep the container alive
 while true; do
-  sleep 30
-  # Check health check server is still running
-  if ! curl -s http://localhost:${PORT:-8080}/health > /dev/null; then
-    echo "WARNING: Health check server not responding. Restarting..."
-    node /app/health-server.js &
-  fi
+    # Check if ElizaOS is still running
+    if [ -n "$ELIZA_PID" ] && ! kill -0 $ELIZA_PID 2>/dev/null; then
+        log "ElizaOS process died. Restarting..."
+        node /app/agent/dist/index.js &
+        ELIZA_PID=$!
+        log "ElizaOS restarted with PID $ELIZA_PID"
+    fi
+    
+    sleep 10
 done 
