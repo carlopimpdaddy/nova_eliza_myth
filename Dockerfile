@@ -94,9 +94,24 @@ EXPOSE 3000 8000
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
+# Create a health check server script
+RUN echo 'const http = require("http");\n\
+    const server = http.createServer((req, res) => {\n\
+    if (req.url === "/health") {\n\
+    res.writeHead(200, {"Content-Type": "application/json"});\n\
+    res.end(JSON.stringify({ status: "ok" }));\n\
+    } else {\n\
+    res.writeHead(404);\n\
+    res.end();\n\
+    }\n\
+    });\n\
+    server.listen(8080, "0.0.0.0", () => {\n\
+    console.log("Health check server running on port 8080");\n\
+    });\n' > /app/health-server.js
+
 # Create a simple startup script
-RUN echo '#!/bin/sh\necho "Starting application..."\npnpm start & pnpm start:client\ntail -f /dev/null' > /app/start.sh && \
+RUN echo '#!/bin/sh\necho "Starting application..."\nnode /app/health-server.js &\npnpm start & pnpm start:client & tail -f /dev/null' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Command to start the application
-CMD ["sh", "-c", "pnpm start & pnpm start:client & tail -f /dev/null"]
+CMD ["sh", "-c", "node /app/health-server.js & pnpm start & pnpm start:client & tail -f /dev/null"]
