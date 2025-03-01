@@ -44,7 +44,7 @@ ENV DOCKER_BUILDKIT=1
 ENV COMPOSE_DOCKER_CLI_BUILD=1
 
 # Build the project
-RUN pnpm run build --verbose && pnpm prune --prod
+RUN pnpm run build && pnpm prune --prod
 
 # List contents of important directories for debugging
 RUN ls -la /app/agent/dist || true
