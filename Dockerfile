@@ -67,7 +67,7 @@ RUN npm install -g pnpm@9.15.4 && \
 WORKDIR /app
 
 # Copy built artifacts and production dependencies from the builder stage
-COPY --from=builder --mount=type=cache,id=s/1d90ee5f-5c7d-47bf-8914-2a4eb0809f73-dist,target=/app/dist /app/dist ./dist
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/.npmrc ./
