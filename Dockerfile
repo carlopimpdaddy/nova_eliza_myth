@@ -87,5 +87,8 @@ EXPOSE 3000
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/health.json || exit 1
 
-# Start only the agent
-CMD ["pnpm", "--filter", "@elizaos/agent", "start", "--isRoot"]
+# Ensure we compile TypeScript to JavaScript during the build phase
+RUN cd /app/agent && pnpm install typescript ts-node && pnpm exec tsc
+
+# Start only the agent using compiled JavaScript instead of ts-node
+CMD ["node", "--enable-source-maps", "/app/agent/dist/index.js", "--isRoot"]
