@@ -1,5 +1,5 @@
 # Use a specific Node.js version for better reproducibility
-FROM node:23.3.0-slim AS builder
+FROM node:20-slim AS builder
 
 # Install pnpm globally and necessary build tools
 RUN npm install -g pnpm@9.15.4 && \
@@ -40,11 +40,15 @@ COPY . .
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
-# Build the project
-RUN pnpm run build && pnpm prune --prod
+# Build the project - ensure TypeScript is compiled here
+RUN pnpm run build && cd /app/agent && pnpm exec tsc && pnpm prune --prod
+
+# Create a simple health check endpoint for the agent
+RUN mkdir -p /app/agent/public && \
+    echo '{"status":"ok"}' > /app/agent/public/health.json
 
 # Final runtime image
-FROM node:23.3.0-slim
+FROM node:20-slim
 
 # Install runtime dependencies
 RUN npm install -g pnpm@9.15.4 && \
@@ -76,19 +80,12 @@ COPY --from=builder /app/characters ./characters
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Create a simple health check endpoint
-RUN mkdir -p /app/agent/public && \
-    echo '{"status":"ok"}' > /app/agent/public/health.json
-
 # Expose port
 EXPOSE 3000
 
 # Health check for Railway
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/health.json || exit 1
-
-# Ensure we compile TypeScript to JavaScript during the build phase
-RUN cd /app/agent && pnpm install typescript ts-node && pnpm exec tsc
 
 # Start only the agent using compiled JavaScript instead of ts-node
 CMD ["node", "--enable-source-maps", "/app/agent/dist/index.js", "--isRoot"]
