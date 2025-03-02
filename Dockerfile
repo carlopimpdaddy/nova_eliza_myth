@@ -4,7 +4,7 @@ FROM node:23.3.0-slim AS builder
 # Install pnpm globally and install necessary build tools
 RUN npm install -g pnpm@9.15.1 && \
     apt-get update && \
-    apt-get install -y git python3 make g++ curl && \
+    apt-get install -y git python3 make g++ && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -23,24 +23,14 @@ COPY tsconfig.json ./
 COPY ./src ./src
 COPY ./characters ./characters
 
-# Install dependencies
-RUN pnpm install
-
-# Temporary fix for build issue - create a minimal ESM-compatible bootstrap file
-RUN mkdir -p /app/dist && \
-    echo "// Bootstrap file to run the TypeScript source directly using ESM\nimport { createRequire } from 'module';\nconst require = createRequire(import.meta.url);\nconst tsNode = require('ts-node');\ntsNode.register();\nimport('../src/index.js');" > /app/dist/index.mjs && \
-    echo "// Type definitions\nexport * from '../src/index';" > /app/dist/index.d.ts
+# Install dependencies and build the project
+RUN pnpm install 
+RUN pnpm build 
 
 # Create dist directory and set permissions
-RUN chown -R node:node /app && \
+RUN mkdir -p /app/dist && \
+    chown -R node:node /app && \
     chmod -R 755 /app
-
-# Add ts-node for runtime TypeScript execution
-RUN pnpm add ts-node typescript @types/node
-
-# Create a simple health check endpoint
-RUN mkdir -p /app/public && \
-    echo '{"status":"ok"}' > /app/public/health.json
 
 # Switch to node user
 USER node
@@ -48,9 +38,9 @@ USER node
 # Create a new stage for the final image
 FROM node:23.3.0-slim
 
-# Install runtime dependencies
-RUN npm install -g pnpm@9.15.1 && \
-    apt-get update && \
+# Install runtime dependencies if needed
+RUN npm install -g pnpm@9.15.1
+RUN apt-get update && \
     apt-get install -y git python3 curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -70,13 +60,6 @@ COPY --from=builder /app/public /app/public
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
-
-# Expose port
 EXPOSE 3000
-
-# Health check for Railway
-HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:3000/health.json || exit 1
-
-# Set the command to run the application using the ESM bootstrap file
-CMD ["node", "dist/index.mjs"]
+# Set the command to run the application
+CMD ["pnpm", "start", "--non-interactive"]
