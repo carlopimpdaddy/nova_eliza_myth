@@ -92,8 +92,7 @@ HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/health.json || exit 1
 
 # Create startup script with proper ESM support
-# Create startup script with proper ESM support
-RUN echo '#!/bin/sh\nnode --experimental-specifier-resolution=node --loader ts-node/esm src/index.ts --isRoot' > /app/start-agent.sh && \
+RUN echo '#!/bin/sh\ncd /app/agent && node --experimental-specifier-resolution=node --loader ts-node/esm src/index.ts --isRoot' > /app/start-agent.sh && \
     chmod +x /app/start-agent.sh
 
 # Start the agent with proper ESM support
