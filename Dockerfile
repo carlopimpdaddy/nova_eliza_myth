@@ -26,8 +26,8 @@ COPY ./characters ./characters
 # Install dependencies
 RUN pnpm install
 
-# Fix the character.ts file by removing the problematic 'extends' syntax error on line 842
-RUN sed -i '842s/extends/\/\/ extends/' ./src/character.ts
+# Create a new fixed character.ts file to replace the broken one
+RUN echo 'import { ModelProviderName } from "./providers";\n\nexport type Character = {\n  name: string;\n  username: string;\n  screenName: string;\n  modelProvider?: ModelProviderName;\n  plugins?: string[];\n  clients?: string[];\n  settings?: Record<string, any>;\n};\n\nexport const defaultCharacter: Character = {\n  name: "ElizaOS Assistant",\n  username: "elizaos",\n  screenName: "ElizaOS",\n  modelProvider: "openai",\n  plugins: ["@elizaos/plugin-twitter"],\n  clients: ["twitter"],\n  settings: {\n    twitter: {}\n  }\n};' > ./src/character.ts
 
 # Now build the project with the fixed file
 RUN pnpm build
