@@ -104,5 +104,5 @@ EXPOSE 3000 8080
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:5000/health.json || exit 1
 
-# Directly use our start script
-CMD ["/app/start.sh"]
+# Execute start.sh using bash instead of trying to load it as a Node.js module
+CMD ["/bin/bash", "/app/start.sh"]
