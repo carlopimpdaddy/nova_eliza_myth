@@ -44,7 +44,7 @@ RUN pnpm install --no-frozen-lockfile
 RUN pnpm run build && pnpm prune --prod
 
 # Ensure ts-node is installed in the agent directory
-RUN cd /app/agent && pnpm add ts-node typescript @types/node
+RUN cd /app/agent && pnpm add ts-node typescript @types/node tslib
 
 # Create a simple health check endpoint for the agent
 RUN mkdir -p /app/agent/public && \
@@ -91,5 +91,9 @@ EXPOSE 3000
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/health.json || exit 1
 
-# Start the agent directly with local ts-node
-CMD ["sh", "-c", "cd /app/agent && ./node_modules/.bin/ts-node --transpile-only src/index.ts --isRoot"]
+# Create startup script with proper ESM support
+RUN echo '#!/bin/sh\ncd /app/agent && node --loader ts-node/esm --no-warnings src/index.ts --isRoot' > /app/start-agent.sh && \
+    chmod +x /app/start-agent.sh
+
+# Start the agent with proper ESM support
+CMD ["/app/start-agent.sh"]
