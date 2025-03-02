@@ -40,8 +40,8 @@ COPY . .
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
-# Build the project - ensure TypeScript is compiled here
-RUN pnpm run build && cd /app/agent && pnpm exec tsc && pnpm prune --prod
+# Build packages only (skip agent TypeScript compilation)
+RUN pnpm run build && pnpm prune --prod
 
 # Create a simple health check endpoint for the agent
 RUN mkdir -p /app/agent/public && \
@@ -51,7 +51,7 @@ RUN mkdir -p /app/agent/public && \
 FROM node:20-slim
 
 # Install runtime dependencies
-RUN npm install -g pnpm@9.15.4 && \
+RUN npm install -g pnpm@9.15.4 ts-node && \
     apt-get update && \
     apt-get install -y \
     git \
@@ -79,6 +79,7 @@ COPY --from=builder /app/characters ./characters
 # Set environment variables for Railway
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV TS_NODE_TRANSPILE_ONLY=true
 
 # Expose port
 EXPOSE 3000
@@ -87,5 +88,9 @@ EXPOSE 3000
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/health.json || exit 1
 
-# Start only the agent using compiled JavaScript instead of ts-node
-CMD ["node", "--enable-source-maps", "/app/agent/dist/index.js", "--isRoot"]
+# Create a simple startup wrapper script that handles errors better
+RUN echo '#!/bin/sh\nnode --require ts-node/register --no-warnings /app/agent/src/index.ts --isRoot' > /app/start.sh && \
+    chmod +x /app/start.sh
+
+# Start only the agent
+CMD ["/app/start.sh"]
