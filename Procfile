@@ -1,1 +1,0 @@
-web: npm install --no-save twitter-api-v2@^1.15.0 && node railway.js 

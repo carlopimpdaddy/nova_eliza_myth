@@ -1,8 +1,0 @@
-{
-    "name": "health-check",
-    "version": "1.0.0",
-    "main": "health-server.js",
-    "dependencies": {
-        "express": "^4.18.2"
-    }
-}
