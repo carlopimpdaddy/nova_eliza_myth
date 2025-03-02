@@ -91,7 +91,7 @@ HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:5173/health.json || exit 1
 
 # Create a custom start script for Railway
-RUN echo '#!/bin/sh\ncd /app/client && pnpm run extract-version && exec vite --host 0.0.0.0 --port 5173' > /app/start-client.sh && \
+RUN echo '#!/bin/sh\ncd /app/client && pnpm run extract-version && exec npx vite --host 0.0.0.0 --port 5173' > /app/start-client.sh && \
     chmod +x /app/start-client.sh
 
 # Start both agent and client
