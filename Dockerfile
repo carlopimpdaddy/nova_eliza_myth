@@ -75,9 +75,23 @@ RUN mkdir -p /app/twitter-mock && \
 # Add an initialization script to modify NODE_PATH
 RUN echo '// Add our twitter mock to the module search path\nprocess.env.NODE_PATH = `${process.env.NODE_PATH || ""}:/app`;\nrequire("module").Module._initPaths();\n\n// Load error handlers\nrequire("./errorHandlers.js");\n\nconsole.log("Initialization complete, NODE_PATH:", process.env.NODE_PATH);' > /app/init.js
 
-# Create our start script
-RUN echo '#!/bin/bash\n\n# Print environment info\necho "Environment variables (redacted):"\necho "NODE_ENV: $NODE_ENV"\necho "PORT: $PORT"\n[ -n "$TWITTER_API_KEY" ] && echo "TWITTER_API_KEY: [REDACTED]" || echo "TWITTER_API_KEY: not set"\n[ -n "$TWITTER_API_SECRET" ] && echo "TWITTER_API_SECRET: [REDACTED]" || echo "TWITTER_API_SECRET: not set"\n[ -n "$TWITTER_ACCESS_TOKEN" ] && echo "TWITTER_ACCESS_TOKEN: [REDACTED]" || echo "TWITTER_ACCESS_TOKEN: not set"\n[ -n "$TWITTER_ACCESS_SECRET" ] && echo "TWITTER_ACCESS_SECRET: [REDACTED]" || echo "TWITTER_ACCESS_SECRET: not set"\n[ -n "$GROK_API_KEY" ] && echo "GROK_API_KEY: [REDACTED]" || echo "GROK_API_KEY: not set"\n\n# Start health check server on a different port\necho "Starting health check server on port 5000..."\n(while true; do { echo -e "HTTP/1.1 200 OK\\r\\nContent-Type: application/json\\r\\n\\r\\n{\\\"status\\\":\\\"ok\\\"}"; } | nc -l -p 5000; done) &\n\n# Start the application\necho "Starting application..."\nNODE_OPTIONS=\'--experimental-modules --es-module-specifier-resolution=node\' \\\nNODE_PATH=/app \\\nnode -r /app/init.js /app/dist/index.js || {\n  echo "Application exited with code $?"\n  echo "Keeping container running for debugging..."\n  # Keep container running for debugging\n  tail -f /dev/null\n}\n' > /app/start.sh && \
-    chmod +x /app/start.sh
+# Create our start script - using a simple approach
+RUN echo '#!/bin/bash' > /app/start.sh && \
+    echo 'echo "Environment variables (redacted):"' >> /app/start.sh && \
+    echo 'echo "NODE_ENV: $NODE_ENV"' >> /app/start.sh && \
+    echo 'echo "PORT: $PORT"' >> /app/start.sh && \
+    echo '[ -n "$TWITTER_API_KEY" ] && echo "TWITTER_API_KEY: [REDACTED]" || echo "TWITTER_API_KEY: not set"' >> /app/start.sh && \
+    echo '[ -n "$TWITTER_API_SECRET" ] && echo "TWITTER_API_SECRET: [REDACTED]" || echo "TWITTER_API_SECRET: not set"' >> /app/start.sh && \
+    echo '[ -n "$TWITTER_ACCESS_TOKEN" ] && echo "TWITTER_ACCESS_TOKEN: [REDACTED]" || echo "TWITTER_ACCESS_TOKEN: not set"' >> /app/start.sh && \
+    echo '[ -n "$TWITTER_ACCESS_SECRET" ] && echo "TWITTER_ACCESS_SECRET: [REDACTED]" || echo "TWITTER_ACCESS_SECRET: not set"' >> /app/start.sh && \
+    echo '[ -n "$GROK_API_KEY" ] && echo "GROK_API_KEY: [REDACTED]" || echo "GROK_API_KEY: not set"' >> /app/start.sh && \
+    echo 'echo "Starting health check server on port 5000..."' >> /app/start.sh && \
+    echo '(while true; do { echo -e "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"status\":\"ok\"}"; } | nc -l -p 5000; done) &' >> /app/start.sh && \
+    echo 'echo "Starting application..."' >> /app/start.sh && \
+    echo 'node /app/dist/index.js || { echo "Application exited with code $?"; echo "Keeping container running for debugging..."; tail -f /dev/null; }' >> /app/start.sh && \
+    chmod +x /app/start.sh && \
+    ls -la /app/start.sh && \
+    cat /app/start.sh
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -104,5 +118,5 @@ EXPOSE 3000 8080
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:5000/health.json || exit 1
 
-# Execute start.sh using bash instead of trying to load it as a Node.js module
-CMD ["/bin/bash", "/app/start.sh"]
+# Execute start.sh using bash and verify it exists first
+CMD ["/bin/sh", "-c", "ls -la /app && ls -la /app/start.sh && /bin/bash /app/start.sh"]
