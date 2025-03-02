@@ -50,6 +50,9 @@ RUN cd /app/agent && pnpm add ts-node typescript @types/node tslib
 RUN mkdir -p /app/agent/public && \
     echo '{"status":"ok"}' > /app/agent/public/health.json
 
+# Create a simple JS bootstrap file
+RUN echo 'const { execSync } = require("child_process");\n\ntry {\n  console.log("Starting ElizaOS Agent...");\n  execSync("cd /app && pnpm --filter \\"@elizaos/agent\\" start --isRoot", { stdio: "inherit" });\n} catch (error) {\n  console.error("Failed to start agent:", error);\n  process.exit(1);\n}' > /app/bootstrap.js
+
 # Final runtime image
 FROM node:20-slim
 
@@ -78,6 +81,7 @@ COPY --from=builder /app/lerna.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
+COPY --from=builder /app/bootstrap.js ./bootstrap.js
 
 # Set environment variables for Railway
 ENV NODE_ENV=production
@@ -91,9 +95,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/health.json || exit 1
 
-# Create startup script with proper ESM support
-RUN echo '#!/bin/sh\ncd /app/agent && node --experimental-specifier-resolution=node --loader ts-node/esm src/index.ts --isRoot' > /app/start-agent.sh && \
-    chmod +x /app/start-agent.sh
-
-# Start the agent with proper ESM support
-CMD ["/app/start-agent.sh"]
+# Start the agent using the bootstrap script
+CMD ["node", "bootstrap.js"]
