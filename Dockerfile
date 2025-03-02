@@ -26,8 +26,8 @@ COPY ./characters ./characters
 # Install dependencies
 RUN pnpm install
 
-# Create a new fixed character.ts file to replace the broken one
-RUN echo 'import { ModelProviderName } from "./providers";\n\nexport type Character = {\n  name: string;\n  username: string;\n  screenName: string;\n  modelProvider?: ModelProviderName;\n  plugins?: string[];\n  clients?: string[];\n  settings?: Record<string, any>;\n};\n\nexport const defaultCharacter: Character = {\n  name: "ElizaOS Assistant",\n  username: "elizaos",\n  screenName: "ElizaOS",\n  modelProvider: "openai",\n  plugins: ["@elizaos/plugin-twitter"],\n  clients: ["twitter"],\n  settings: {\n    twitter: {}\n  }\n};\n\n// Export character as alias to defaultCharacter for backward compatibility\nexport const character = defaultCharacter;' > ./src/character.ts
+# Create a new fixed character.ts file that uses the Character type from @elizaos/core
+RUN echo 'import { type Character, ModelProviderName } from "@elizaos/core";\n\nexport { Character };\n\nexport const defaultCharacter: Character = {\n  name: "ElizaOS Assistant",\n  username: "elizaos",\n  bio: "I am an ElizaOS Assistant.",\n  lore: "ElizaOS is an open-source operating system for AI agents.",\n  messageExamples: [],\n  postExamples: [],\n  personality: {},\n  modelProvider: "openai" as ModelProviderName,\n  plugins: ["@elizaos/plugin-twitter"],\n  clients: ["twitter"],\n  settings: {\n    twitter: {}\n  },\n  screenName: "ElizaOS"\n};\n\n// Export character as alias to defaultCharacter for backward compatibility\nexport const character = defaultCharacter;' > ./src/character.ts
 
 # Now build the project with the fixed file
 RUN pnpm build
