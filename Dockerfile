@@ -47,12 +47,13 @@ RUN pnpm run build && pnpm prune --prod
 FROM node:23.3.0-slim
 
 # Install runtime dependencies
-RUN npm install -g pnpm@9.15.4 && \
+RUN npm install -g pnpm@9.15.4 concurrently && \
     apt-get update && \
     apt-get install -y \
     git \
     python3 \
-    ffmpeg && \
+    ffmpeg \
+    curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -72,8 +73,17 @@ COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
-# Expose necessary ports
-EXPOSE 3000 5173
+# Set environment variables for Railway
+ENV PORT=5173
+ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
 
-# Command to start the application
-CMD ["sh", "-c", "pnpm start & pnpm start:client"]
+# Expose ports - Railway uses PORT env var automatically
+EXPOSE 5173 3000 8080
+
+# Health check for Railway - check the Vite server port
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:5173/ || exit 1
+
+# Start both agent and client without a shell script
+CMD ["npm", "run", "start:all"]
