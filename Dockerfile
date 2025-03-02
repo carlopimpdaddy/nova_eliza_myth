@@ -36,6 +36,10 @@ RUN pnpm build
 RUN mkdir -p /app/public && \
     echo '{"status":"ok"}' > /app/public/health.json
 
+# Create a simple start script to avoid TypeScript compilation issues
+RUN echo '#!/bin/sh\nnode /app/dist/index.js' > /app/start.sh && \
+    chmod +x /app/start.sh
+
 # Set permissions
 RUN mkdir -p /app/dist && \
     chown -R node:node /app && \
@@ -62,6 +66,7 @@ COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/public /app/public
 COPY --from=builder /app/characters /app/characters
+COPY --from=builder /app/start.sh /app/start.sh
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -74,5 +79,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/health.json || exit 1
 
-# Set the command to run the application (using built files)
-CMD ["pnpm", "start", "--non-interactive"]
+# Directly use the compiled JavaScript rather than the package.json scripts
+CMD ["/app/start.sh"]
