@@ -27,7 +27,7 @@ COPY ./characters ./characters
 RUN pnpm install
 
 # Create a new fixed character.ts file to replace the broken one
-RUN echo 'import { ModelProviderName } from "./providers";\n\nexport type Character = {\n  name: string;\n  username: string;\n  screenName: string;\n  modelProvider?: ModelProviderName;\n  plugins?: string[];\n  clients?: string[];\n  settings?: Record<string, any>;\n};\n\nexport const defaultCharacter: Character = {\n  name: "ElizaOS Assistant",\n  username: "elizaos",\n  screenName: "ElizaOS",\n  modelProvider: "openai",\n  plugins: ["@elizaos/plugin-twitter"],\n  clients: ["twitter"],\n  settings: {\n    twitter: {}\n  }\n};' > ./src/character.ts
+RUN echo 'import { ModelProviderName } from "./providers";\n\nexport type Character = {\n  name: string;\n  username: string;\n  screenName: string;\n  modelProvider?: ModelProviderName;\n  plugins?: string[];\n  clients?: string[];\n  settings?: Record<string, any>;\n};\n\nexport const defaultCharacter: Character = {\n  name: "ElizaOS Assistant",\n  username: "elizaos",\n  screenName: "ElizaOS",\n  modelProvider: "openai",\n  plugins: ["@elizaos/plugin-twitter"],\n  clients: ["twitter"],\n  settings: {\n    twitter: {}\n  }\n};\n\n// Export character as alias to defaultCharacter for backward compatibility\nexport const character = defaultCharacter;' > ./src/character.ts
 
 # Now build the project with the fixed file
 RUN pnpm build
@@ -61,6 +61,7 @@ COPY --from=builder /app/package.json /app/
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/public /app/public
+COPY --from=builder /app/characters /app/characters
 
 # Set environment variables
 ENV NODE_ENV=production
