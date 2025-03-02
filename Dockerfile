@@ -36,10 +36,6 @@ RUN pnpm build
 RUN mkdir -p /app/public && \
     echo '{"status":"ok"}' > /app/public/health.json
 
-# Create a direct approach that provides Twitter client mocks by creating files directly
-RUN echo '#!/bin/bash\n\n# Print environment info\necho "Environment variables (redacted):"\necho "NODE_ENV: $NODE_ENV"\necho "PORT: $PORT"\n[ -n "$TWITTER_API_KEY" ] && echo "TWITTER_API_KEY: [REDACTED]" || echo "TWITTER_API_KEY: not set"\n[ -n "$TWITTER_API_SECRET" ] && echo "TWITTER_API_SECRET: [REDACTED]" || echo "TWITTER_API_SECRET: not set"\n[ -n "$TWITTER_ACCESS_TOKEN" ] && echo "TWITTER_ACCESS_TOKEN: [REDACTED]" || echo "TWITTER_ACCESS_TOKEN: not set"\n[ -n "$TWITTER_ACCESS_SECRET" ] && echo "TWITTER_ACCESS_SECRET: [REDACTED]" || echo "TWITTER_ACCESS_SECRET: not set"\n[ -n "$GROK_API_KEY" ] && echo "GROK_API_KEY: [REDACTED]" || echo "GROK_API_KEY: not set"\n\n# Start health check server on a different port\necho "Starting health check server on port 5000..."\n(while true; do { echo -e "HTTP/1.1 200 OK\\r\\nContent-Type: application/json\\r\\n\\r\\n{\\\"status\\\":\\\"ok\\\"}"; } | nc -l -p 5000; done) &\n\n# Create error handlers\ncat > /app/errorHandlers.js << "EOF"\n// Set up global error handlers to prevent crashes\nprocess.on("uncaughtException", function(err) {\n  console.error("Caught unhandled exception:", err.message);\n  // Keep the process running\n});\n\nprocess.on("unhandledRejection", function(reason) {\n  console.error("Caught unhandled rejection:", reason);\n  // Keep the process running\n});\n\nconsole.log("Error handlers installed");\nEOF\n\n# Create a Twitter client mock file that will be used by the application\nmkdir -p /app/twitter-mock\ncat > /app/twitter-mock/index.js << "EOF"\nexport default {\n  start: async function() {\n    console.log("Mock Twitter client started successfully");\n    return Promise.resolve();\n  }\n};\nEOF\n\n# Add an initialization script to modify NODE_PATH\ncat > /app/init.js << "EOF"\n// Add our twitter mock to the module search path\nprocess.env.NODE_PATH = \`${process.env.NODE_PATH || ""}:/app\`;\nrequire("module").Module._initPaths();\n\n// Load error handlers\nrequire("./errorHandlers.js");\n\nconsole.log("Initialization complete, NODE_PATH:", process.env.NODE_PATH);\nEOF\n\n# Start the application\necho "Starting application..."\nNODE_OPTIONS=\'--experimental-modules --es-module-specifier-resolution=node\' \\\nNODE_PATH=/app \\\nnode -r /app/init.js /app/dist/index.js || {\n  echo "Application exited with code $?"\n  echo "Keeping container running for debugging..."\n  # Keep container running for debugging\n  tail -f /dev/null\n}\n' > /app/start.sh && \
-    chmod +x /app/start.sh
-
 # Set permissions
 RUN mkdir -p /app/dist && \
     chown -R node:node /app && \
@@ -67,7 +63,21 @@ COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/public /app/public
 COPY --from=builder /app/characters /app/characters
-COPY --from=builder /app/start.sh /app/start.sh
+
+# Create all our scripts directly in the final stage
+# Create error handlers
+RUN echo '// Set up global error handlers to prevent crashes\nprocess.on("uncaughtException", function(err) {\n  console.error("Caught unhandled exception:", err.message);\n  // Keep the process running\n});\n\nprocess.on("unhandledRejection", function(reason) {\n  console.error("Caught unhandled rejection:", reason);\n  // Keep the process running\n});\n\nconsole.log("Error handlers installed");' > /app/errorHandlers.js
+
+# Create a Twitter client mock file that will be used by the application
+RUN mkdir -p /app/twitter-mock && \
+    echo 'export default {\n  start: async function() {\n    console.log("Mock Twitter client started successfully");\n    return Promise.resolve();\n  }\n};' > /app/twitter-mock/index.js
+
+# Add an initialization script to modify NODE_PATH
+RUN echo '// Add our twitter mock to the module search path\nprocess.env.NODE_PATH = `${process.env.NODE_PATH || ""}:/app`;\nrequire("module").Module._initPaths();\n\n// Load error handlers\nrequire("./errorHandlers.js");\n\nconsole.log("Initialization complete, NODE_PATH:", process.env.NODE_PATH);' > /app/init.js
+
+# Create our start script
+RUN echo '#!/bin/bash\n\n# Print environment info\necho "Environment variables (redacted):"\necho "NODE_ENV: $NODE_ENV"\necho "PORT: $PORT"\n[ -n "$TWITTER_API_KEY" ] && echo "TWITTER_API_KEY: [REDACTED]" || echo "TWITTER_API_KEY: not set"\n[ -n "$TWITTER_API_SECRET" ] && echo "TWITTER_API_SECRET: [REDACTED]" || echo "TWITTER_API_SECRET: not set"\n[ -n "$TWITTER_ACCESS_TOKEN" ] && echo "TWITTER_ACCESS_TOKEN: [REDACTED]" || echo "TWITTER_ACCESS_TOKEN: not set"\n[ -n "$TWITTER_ACCESS_SECRET" ] && echo "TWITTER_ACCESS_SECRET: [REDACTED]" || echo "TWITTER_ACCESS_SECRET: not set"\n[ -n "$GROK_API_KEY" ] && echo "GROK_API_KEY: [REDACTED]" || echo "GROK_API_KEY: not set"\n\n# Start health check server on a different port\necho "Starting health check server on port 5000..."\n(while true; do { echo -e "HTTP/1.1 200 OK\\r\\nContent-Type: application/json\\r\\n\\r\\n{\\\"status\\\":\\\"ok\\\"}"; } | nc -l -p 5000; done) &\n\n# Start the application\necho "Starting application..."\nNODE_OPTIONS=\'--experimental-modules --es-module-specifier-resolution=node\' \\\nNODE_PATH=/app \\\nnode -r /app/init.js /app/dist/index.js || {\n  echo "Application exited with code $?"\n  echo "Keeping container running for debugging..."\n  # Keep container running for debugging\n  tail -f /dev/null\n}\n' > /app/start.sh && \
+    chmod +x /app/start.sh
 
 # Set environment variables
 ENV NODE_ENV=production
