@@ -43,6 +43,9 @@ RUN pnpm install --no-frozen-lockfile
 # Build packages only (skip agent TypeScript compilation)
 RUN pnpm run build && pnpm prune --prod
 
+# Ensure ts-node is installed in the agent directory
+RUN cd /app/agent && pnpm add ts-node typescript @types/node
+
 # Create a simple health check endpoint for the agent
 RUN mkdir -p /app/agent/public && \
     echo '{"status":"ok"}' > /app/agent/public/health.json
@@ -51,7 +54,7 @@ RUN mkdir -p /app/agent/public && \
 FROM node:20-slim
 
 # Install runtime dependencies
-RUN npm install -g pnpm@9.15.4 ts-node && \
+RUN npm install -g pnpm@9.15.4 && \
     apt-get update && \
     apt-get install -y \
     git \
@@ -88,9 +91,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/health.json || exit 1
 
-# Create a simple startup wrapper script that handles errors better
-RUN echo '#!/bin/sh\nnode --require ts-node/register --no-warnings /app/agent/src/index.ts --isRoot' > /app/start.sh && \
-    chmod +x /app/start.sh
-
-# Start only the agent
-CMD ["/app/start.sh"]
+# Start the agent directly with local ts-node
+CMD ["sh", "-c", "cd /app/agent && ./node_modules/.bin/ts-node --transpile-only src/index.ts --isRoot"]
