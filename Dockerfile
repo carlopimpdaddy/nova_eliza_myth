@@ -47,7 +47,7 @@ RUN pnpm run build && pnpm prune --prod
 FROM node:23.3.0-slim
 
 # Install runtime dependencies
-RUN npm install -g pnpm@9.15.4 concurrently && \
+RUN npm install -g pnpm@9.15.4 && \
     apt-get update && \
     apt-get install -y \
     git \
@@ -67,32 +67,25 @@ COPY --from=builder /app/.npmrc ./
 COPY --from=builder /app/turbo.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/agent ./agent
-COPY --from=builder /app/client ./client
 COPY --from=builder /app/lerna.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/characters ./characters
 
 # Set environment variables for Railway
-ENV PORT=5173
 ENV NODE_ENV=production
-ENV HOSTNAME=0.0.0.0
-ENV VITE_HOST=0.0.0.0
-ENV HOST=0.0.0.0
+ENV PORT=3000
 
-# Create a simple API endpoint for health checks
-RUN echo '{"status":"ok"}' > /app/client/public/health.json
+# Create a simple health check endpoint
+RUN mkdir -p /app/agent/public && \
+    echo '{"status":"ok"}' > /app/agent/public/health.json
 
-# Expose ports - Railway uses PORT env var automatically
-EXPOSE 5173 3000 8080
+# Expose port
+EXPOSE 3000
 
-# Health check for Railway - check a static file endpoint
+# Health check for Railway
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:5173/health.json || exit 1
+    CMD curl -f http://localhost:3000/health.json || exit 1
 
-# Create a custom start script for Railway
-RUN echo '#!/bin/sh\ncd /app/client && pnpm run extract-version && exec npx vite --host 0.0.0.0 --port 5173' > /app/start-client.sh && \
-    chmod +x /app/start-client.sh
-
-# Start both agent and client
-CMD ["sh", "-c", "concurrently \"pnpm start\" \"/app/start-client.sh\""]
+# Start only the agent
+CMD ["pnpm", "--filter", "@elizaos/agent", "start", "--isRoot"]

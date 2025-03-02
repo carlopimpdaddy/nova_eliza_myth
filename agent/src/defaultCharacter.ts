@@ -7,35 +7,15 @@ export const defaultCharacter: Character = {
     plugins: [
         "@elizaos/plugin-twitter"
     ],
-    clients: [
-        "twitter"
-    ],
     modelProvider: "grok" as ModelProviderName,
-    settings: {
-        twitter: {
-            commands: {
-                startup: {
-                    description: "Get startup advice and guidance",
-                    usage: "/startup [topic] e.g., team, product, market"
-                },
-                mentor: {
-                    description: "Get personalized mentoring on specific challenges",
-                    usage: "/mentor [challenge] e.g., hiring, scalftwittering, fundraising"
-                },
-                ourfeedback: {
-                    description: "Get feedback on your startup plans or materials",
-                    usage: "/feedback [area] e.g., pitch, strategy, product"
-                },
-                analyze: {
-                    description: "Analyze your startup situation or decision",
-                    usage: "/analyze [situation] e.g., pivot, competition, metrics"
-                },
-                resources: {
-                    description: "Get relevant startup resources and guides",
-                    usage: "/resources [topic] e.g., fundraising, team, growth"
-                }
-            }
-        },
+    "settings": {
+        "secrets": {
+        "TWITTER_ENABLED": "true",
+        "TWITTER_AUTOPOST": "true",
+        "HEADLESS": "true",
+        "ENABLE_AUTO_RUN": "true"
+        }
+    },
         voice: {
             model: "en_US-female-medium"
         }
