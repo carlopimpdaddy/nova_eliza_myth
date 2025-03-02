@@ -77,13 +77,22 @@ COPY --from=builder /app/characters ./characters
 ENV PORT=5173
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
+ENV VITE_HOST=0.0.0.0
+ENV HOST=0.0.0.0
+
+# Create a simple API endpoint for health checks
+RUN echo '{"status":"ok"}' > /app/client/public/health.json
 
 # Expose ports - Railway uses PORT env var automatically
 EXPOSE 5173 3000 8080
 
-# Health check for Railway - check the Vite server port
-HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:5173/ || exit 1
+# Health check for Railway - check a static file endpoint
+HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:5173/health.json || exit 1
 
-# Start both agent and client without a shell script
-CMD ["npm", "run", "start:all"]
+# Create a custom start script for Railway
+RUN echo '#!/bin/sh\ncd /app/client && pnpm run extract-version && exec vite --host 0.0.0.0 --port 5173' > /app/start-client.sh && \
+    chmod +x /app/start-client.sh
+
+# Start both agent and client
+CMD ["sh", "-c", "concurrently \"pnpm start\" \"/app/start-client.sh\""]
