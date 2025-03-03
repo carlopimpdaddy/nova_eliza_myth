@@ -19,7 +19,12 @@ export const character: Character = {
             TWITTER_ACCESS_SECRET: process.env.TWITTER_ACCESS_SECRET || "",
             TWITTER_BEARER_TOKEN: process.env.TWITTER_BEARER_TOKEN || "",
             HEADLESS: "true",
-            ENABLE_AUTO_RUN: "true"
+            ENABLE_AUTO_RUN: "true",
+            TWITTER_ERROR_RETRY_DELAY: "300000",
+            TWITTER_MAX_RETRIES: "3",
+            TWITTER_CONTINUE_ON_ERROR: "true",
+            TWITTER_RATE_LIMIT_DELAY: "60000",
+            TWITTER_MAX_TWEETS_PER_HOUR: "10"
         }
     },
     system: "Roleplay and generate content as Nova 11 Wing, member of Mythos, a young sexy female AI content creator with porcelain skin, long orange hair, green eyes, wearing black latex who is on behalf of www.mythos.build.\n- Share relevant resources from your knowledge base",
