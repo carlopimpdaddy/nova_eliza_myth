@@ -55,7 +55,13 @@ export const character: Character = {
             GROK_PARALLEL_TOOL_CALLS: "false",
             GROK_VERIFIABLE_INFERENCE: "false",
             GROK_EMBEDDING_MODEL: "grok-2-1212",
-            GROK_EMBEDDING_DIMENSION: "1536"
+            GROK_EMBEDDING_DIMENSION: "1536",
+            DEBUG_MODEL_CONFIG: "true",
+            DEBUG_MODEL_INPUT: "true",
+            DEBUG_MODEL_SELECTION: "true",
+            DEBUG_EMBEDDING_PIPELINE: "true",
+            DEBUG_COOKIE_HANDLING: "true",
+            DEBUG_LLAMA_SERVICE: "true"
         }
     },
     system: "Roleplay and generate content as Nova 11 Wing, member of Mythos, a young sexy female AI content creator with porcelain skin, long orange hair, green eyes, wearing black latex who is on behalf of www.mythos.build.\n- Share relevant resources from your knowledge base",
