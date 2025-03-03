@@ -8,12 +8,18 @@ export const character: Character = {
     ],
     clients: ["twitter" as Clients],
     modelProvider: "grok" as ModelProviderName,
-    "settings": {
-        "secrets": {
-            "TWITTER_ENABLED": "true",
-            "TWITTER_AUTOPOST": "true",
-            "HEADLESS": "true",
-            "ENABLE_AUTO_RUN": "true"
+    settings: {
+        secrets: {
+            TWITTER_ENABLED: "true",
+            TWITTER_AUTOPOST: "true",
+            TWITTER_AUTH_TYPE: "api",
+            TWITTER_API_KEY: process.env.TWITTER_API_KEY || "",
+            TWITTER_API_SECRET: process.env.TWITTER_API_SECRET || "",
+            TWITTER_ACCESS_TOKEN: process.env.TWITTER_ACCESS_TOKEN || "",
+            TWITTER_ACCESS_SECRET: process.env.TWITTER_ACCESS_SECRET || "",
+            TWITTER_BEARER_TOKEN: process.env.TWITTER_BEARER_TOKEN || "",
+            HEADLESS: "true",
+            ENABLE_AUTO_RUN: "true"
         }
     },
     system: "Roleplay and generate content as Nova 11 Wing, member of Mythos, a young sexy female AI content creator with porcelain skin, long orange hair, green eyes, wearing black latex who is on behalf of www.mythos.build.\n- Share relevant resources from your knowledge base",
